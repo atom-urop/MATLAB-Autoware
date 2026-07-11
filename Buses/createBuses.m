@@ -1,160 +1,278 @@
-% clc
-% clear all
-% close all
+%% createBuses.m
 
-% --------------
-%% /localization/kinematic_state
-%% --------------
+%% ============================================================
+% BASIC TYPES
+% =============================================================
+
+doubleElem = Simulink.BusElement;
+doubleElem.DataType = 'double';
+doubleElem.Dimensions = 1;
+
+singleElem = Simulink.BusElement;
+singleElem.DataType = 'single';
+singleElem.Dimensions = 1;
 
 
-% 1. SOTTO-ELEMENTI: Geometria Base (Punti e Vettori)
-% Struttura per Point position (x, y, z) e Vector3 (linear/angular)
-elem3D = Simulink.BusElement;
-elem3D.DataType = 'double';
-elem3D.Dimensions = 1;
+%% ============================================================
+% GEOMETRY BUS
+% geometry_msgs/Point
+% =============================================================
 
 PointBus = Simulink.Bus;
-elemX = elem3D; elemX.Name = 'x';
-elemY = elem3D; elemY.Name = 'y';
-elemZ = elem3D; elemZ.Name = 'z';
-PointBus.Elements = [elemX, elemY, elemZ];
 
-% Struttura per Quaternion orientation (x, y, z, w)
+x = doubleElem;
+x.Name = 'x';
+
+y = doubleElem;
+y.Name = 'y';
+
+z = doubleElem;
+z.Name = 'z';
+
+PointBus.Elements = [x y z];
+
+
+%% geometry_msgs/Quaternion
+
 QuaternionBus = Simulink.Bus;
-elemW = elem3D; elemW.Name = 'w';
-QuaternionBus.Elements = [elemX, elemY, elemZ, elemW];
+
+qx = doubleElem;
+qx.Name = 'x';
+
+qy = doubleElem;
+qy.Name = 'y';
+
+qz = doubleElem;
+qz.Name = 'z';
+
+qw = doubleElem;
+qw.Name = 'w';
+
+QuaternionBus.Elements = [qx qy qz qw];
 
 
-% 2. SOTTO-ELEMENTI: Pose e Twist (Con Covarianza)
-% Sotto-bus per "Pose"
+
+%% ============================================================
+% NAV_MSGS ODOMETRY
+% /localization/kinematic_state
+% =============================================================
+
+
+%% Pose
+
 PoseBus = Simulink.Bus;
-p1 = Simulink.BusElement; p1.Name = 'position'; p1.DataType = 'Bus: PointBus';
-p2 = Simulink.BusElement; p2.Name = 'orientation'; p2.DataType = 'Bus: QuaternionBus';
-PoseBus.Elements = [p1, p2];
 
-% Sotto-bus per "Twist"
+position = Simulink.BusElement;
+position.Name = 'position';
+position.DataType = 'Bus: PointBus';
+
+orientation = Simulink.BusElement;
+orientation.Name = 'orientation';
+orientation.DataType = 'Bus: QuaternionBus';
+
+PoseBus.Elements = [position orientation];
+
+
+%% Twist
+
 TwistBus = Simulink.Bus;
-t1 = Simulink.BusElement; t1.Name = 'linear'; t1.DataType = 'Bus: PointBus'; % Riutilizza il vettore 3D
-t2 = Simulink.BusElement; t2.Name = 'angular'; t2.DataType = 'Bus: PointBus';
-TwistBus.Elements = [t1, t2];
+
+linear = Simulink.BusElement;
+linear.Name = 'linear';
+linear.DataType = 'Bus: PointBus';
+
+angular = Simulink.BusElement;
+angular.Name = 'angular';
+angular.DataType = 'Bus: PointBus';
+
+TwistBus.Elements = [linear angular];
 
 
-% %% 3. ELEMENTI INTERMEDI: PoseWithCovariance e TwistWithCovariance
-% covElem = Simulink.BusElement;
-% covElem.Name = 'covariance';
-% covElem.DataType = 'double';
-% covElem.Dimensions = 36; % float64[36] che vedi a schermo
-% 
-% PoseWithCovarianceBus = Simulink.Bus;
-% pc1 = Simulink.BusElement; pc1.Name = 'pose'; pc1.DataType = 'Bus: PoseBus';
-% PoseWithCovarianceBus.Elements = [pc1, covElem];
-% 
-% TwistWithCovarianceBus = Simulink.Bus;
-% tc1 = Simulink.BusElement; tc1.Name = 'twist'; tc1.DataType = 'Bus: TwistBus';
-% TwistWithCovarianceBus.Elements = [tc1, covElem];
+%% KinematicState
 
-
-% 4. IL BUS PRINCIPALE: KinematicStateBus (Unione finale SENZA COVARIANZA)
 KinematicStateBus = Simulink.Bus;
 
-% Elemento Pose
-mainElem1 = Simulink.BusElement;
-mainElem1.Name = 'pose';
-mainElem1.DataType = 'Bus: PoseBus';
+pose = Simulink.BusElement;
+pose.Name = 'pose';
+pose.DataType = 'Bus: PoseBus';
 
-% Elemento Twist
-mainElem2 = Simulink.BusElement;
-mainElem2.Name = 'twist';
-mainElem2.DataType = 'Bus: TwistBus';
-
-KinematicStateBus.Elements = [mainElem1, mainElem2];
+twist = Simulink.BusElement;
+twist.Name = 'twist';
+twist.DataType = 'Bus: TwistBus';
 
 
-% --------------
-%% /localization/acceleration
-%% --------------
+KinematicStateBus.Elements = [pose twist];
+
+
+
+%% ============================================================
+% /localization/acceleration
+% =============================================================
 
 AccelerationBus = Simulink.Bus;
 
+acceleration = Simulink.BusElement;
+acceleration.Name = 'acceleration';
+acceleration.DataType = 'Bus: TwistBus';
 
-mainElem2 = Simulink.BusElement;
-mainElem2.Name = 'Acceleration';
-mainElem2.DataType = 'Bus: TwistBus';
-
-AccelerationBus.Elements = mainElem2;
-
+AccelerationBus.Elements = acceleration;
 
 
 
-% ---------------------
-%% /planning/trajectory
-% ---------------------
-
-% Variabili dinamiche in float32 (singola precisione)
-
-elemFloat = Simulink.BusElement; elemFloat.DataType = 'single';
-
-tp3 = elemFloat; tp3.Name = 'longitudinal_velocity_mps';
-tp4 = elemFloat; tp4.Name = 'lateral_velocity_mps';
-tp5 = elemFloat; tp5.Name = 'acceleration_mps2';
-tp6 = elemFloat; tp6.Name = 'heading_rate_rps';
-tp7 = elemFloat; tp7.Name = 'front_wheel_angle_rad';
-tp8 = elemFloat; tp8.Name = 'rear_wheel_angle_rad';
+%% ============================================================
+% /planning/trajectory
+% =============================================================
 
 
 TrajectoryBus = Simulink.Bus;
 
-TrajectoryBus.Elements = [mainElem1, tp3, tp4, tp5, tp6, tp7, tp8];
+
+trajectoryPoint = Simulink.BusElement;
+trajectoryPoint.Name = 'position';
+trajectoryPoint.DataType = 'Bus: PointBus';
 
 
-% ---------------------
-%% /control/command/control_cmd
-% ---------------------
+longVel = singleElem;
+longVel.Name = 'longitudinal_velocity_mps';
 
-% 2. BUS COMANDO LATERALE (Lateral Control Command)
+latVel = singleElem;
+latVel.Name = 'lateral_velocity_mps';
+
+acc = singleElem;
+acc.Name = 'acceleration_mps2';
+
+headingRate = singleElem;
+headingRate.Name = 'heading_rate_rps';
+
+frontWheel = singleElem;
+frontWheel.Name = 'front_wheel_angle_rad';
+
+rearWheel = singleElem;
+rearWheel.Name = 'rear_wheel_angle_rad';
+
+
+TrajectoryBus.Elements = [
+    trajectoryPoint
+    longVel
+    latVel
+    acc
+    headingRate
+    frontWheel
+    rearWheel
+];
+
+
+
+%% ============================================================
+% CONTROL COMMAND
+% /control/command/control_cmd
+% =============================================================
+
+
+%% Lateral
+
 LateralBus = Simulink.Bus;
 
-% Variabili dinamiche (float32 -> single)
 
-lat3 = elemFloat; lat3.Name = 'front_steering_tire_angle';
+frontSteer = singleElem;
+frontSteer.Name = 'front_steering_tire_angle';
 
-%
-%
-%
-% MODIFICA 4WS
-lat4 = elemFloat; lat4.Name = 'rear_steering_tire_angle';  
-%
-%
-%                 
+rearSteer = singleElem;                                 % Modified for 4WS
+rearSteer.Name = 'rear_steering_tire_angle';            % Modified for 4WS
 
 
+LateralBus.Elements = [
+    frontSteer
+    rearSteer
+];
 
-LateralBus.Elements = [lat3, lat4];
 
-
-% 3. BUS COMANDO LONGITUDINALE (Longitudinal Control Command)
+%% Longitudinal
 
 LongitudinalBus = Simulink.Bus;
 
-% Variabili dinamiche (Velocity, Acceleration, Jerk)
-long3 = elemFloat; long3.Name = 'velocity';
-long4 = elemFloat; long4.Name = 'acceleration';
-long5 = elemFloat; long5.Name = 'jerk';
+
+velocity = singleElem;
+velocity.Name = 'velocity';
+
+acceleration = singleElem;
+acceleration.Name = 'acceleration';
+
+jerk = singleElem;
+jerk.Name = 'jerk';
 
 
-LongitudinalBus.Elements = [long3, long4, long5];
+LongitudinalBus.Elements = [
+    velocity
+    acceleration
+    jerk
+];
 
-% 4. IL BUS PRINCIPALE: ControlCMDBus 
+
+%% Control command
+
 ControlCMDBus = Simulink.Bus;
 
-% Elemento Lateral
-mainElemA = Simulink.BusElement;
-mainElemA.Name = 'Lateral';
-mainElemA.DataType = 'Bus: LateralBus';
 
-% Elemento Twist
-mainElemB = Simulink.BusElement;
-mainElemB.Name = 'Longitudinal';
-mainElemB.DataType = 'Bus: LongitudinalBus';
+lateral = Simulink.BusElement;
+lateral.Name = 'lateral';
+lateral.DataType = 'Bus: LateralBus';
 
-ControlCMDBus.Elements = [mainElemA, mainElemB];
+
+longitudinal = Simulink.BusElement;
+longitudinal.Name = 'longitudinal';
+longitudinal.DataType = 'Bus: LongitudinalBus';
+
+
+ControlCMDBus.Elements = [
+    lateral
+    longitudinal
+];
+
+
+
+%% ============================================================
+% VEHICLE INTERNAL STATE
+% State vector:
+%
+% X = [x y yaw vx steer_front steer_rear acc]
+%
+% It's not a topic in Autoware. It's created to simulate the update of the
+% state inside the node simple_planning_simulator_core
+% =============================================================
+
+
+VehicleInternalStateBus = Simulink.Bus;
+
+
+x = doubleElem;
+x.Name = 'x';
+
+y = doubleElem;
+y.Name = 'y';
+
+yaw = doubleElem;
+yaw.Name = 'yaw';
+
+vx = doubleElem;
+vx.Name = 'vx';
+
+steer_front = doubleElem;
+steer_front.Name = 'steer_front';
+
+steer_rear = doubleElem;                    % Modified for 4WS
+steer_rear.Name = 'steer_rear';
+
+acc = doubleElem;
+acc.Name = 'acc';
+
+
+VehicleInternalStateBus.Elements = [
+    x
+    y
+    yaw
+    vx
+    steer_front
+    steer_rear
+    acc
+];

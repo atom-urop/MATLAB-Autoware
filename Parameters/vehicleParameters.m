@@ -25,6 +25,14 @@ vehicle.sim.steer_time_constant = 0.27; % time constant of the 1st-order steerin
 vehicle.sim.x_stddev = 0.0001; % x standard deviation for dummy covariance in map coordinate
 vehicle.sim.y_stddev = 0.0001; % y standard deviation for dummy covariance in map coordinate
 
+% Default values form declare_parameter in initialize_vehicle_model in 
+% simple_planning_simulator_core.cpp, not declared in
+% simulator_model.param.yaml therefore.
+vehicle.sim.steer_dead_band = 0.0;
+vehicle.sim.steer_bias = 0.0;
+vehicle.sim.debug_acc_scaling_factor = 1.0;
+vehicle.sim.debug_steer_scaling_factor = 1.0;
+
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]

@@ -23,4 +23,4 @@ createBuses;
 
 %% Open Simulink model
 
-% open_system("AutowareSimulator.slx");
+open_system("ATOM_simple_planning_simulator.slx");
