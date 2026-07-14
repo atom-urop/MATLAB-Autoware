@@ -174,10 +174,10 @@ TrajectoryBus.Elements = [
 LateralBus = Simulink.Bus;
 
 
-frontSteer = singleElem;
+frontSteer = doubleElem;
 frontSteer.Name = 'front_steering_tire_angle';
 
-rearSteer = singleElem;                                 % Modified for 4WS
+rearSteer = doubleElem;                                 % Modified for 4WS
 rearSteer.Name = 'rear_steering_tire_angle';            % Modified for 4WS
 
 
@@ -192,13 +192,13 @@ LateralBus.Elements = [
 LongitudinalBus = Simulink.Bus;
 
 
-velocity = singleElem;
+velocity = doubleElem;
 velocity.Name = 'velocity';
 
-acceleration = singleElem;
+acceleration = doubleElem;
 acceleration.Name = 'acceleration';
 
-jerk = singleElem;
+jerk = doubleElem;
 jerk.Name = 'jerk';
 
 

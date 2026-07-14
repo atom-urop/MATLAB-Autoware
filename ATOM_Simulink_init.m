@@ -9,6 +9,7 @@ close all;
 
 addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
 addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
+addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
 
 
 %% Load vehicle parameters
