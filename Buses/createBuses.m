@@ -3,10 +3,15 @@
 %% ============================================================
 % BASIC TYPES
 % =============================================================
+N = 100;
 
 doubleElem = Simulink.BusElement;
 doubleElem.DataType = 'double';
 doubleElem.Dimensions = 1;
+
+NElem = Simulink.BusElement;
+NElem.DataType = 'double';
+NElem.Dimensions = N;
 
 singleElem = Simulink.BusElement;
 singleElem.DataType = 'single';
@@ -124,44 +129,85 @@ AccelerationBus.Elements = acceleration;
 % =============================================================
 
 
-TrajectoryBus = Simulink.Bus;
+PointBusN = Simulink.Bus;
+
+x = NElem;
+x.Name = 'x';
+
+y = NElem;
+y.Name = 'y';
+
+z = NElem;
+z.Name = 'z';
+
+PointBusN.Elements = [x y z];
 
 
-trajectoryPoint = Simulink.BusElement;
-trajectoryPoint.Name = 'position';
-trajectoryPoint.DataType = 'Bus: PointBus';
+%% geometry_msgs/Quaternion
+
+QuaternionBusN = Simulink.Bus;
+
+qx = NElem;
+qx.Name = 'qx';
+
+qy = NElem;
+qy.Name = 'qy';
+
+qz = NElem;
+qz.Name = 'qz';
+
+qw = NElem;
+qw.Name = 'qw';
+
+QuaternionBusN.Elements = [qx qy qz qw];
+
+PoseBusN = Simulink.Bus;
+
+positionN = Simulink.BusElement;
+positionN.Name = 'position';
+positionN.DataType = 'Bus: PointBusN';
+
+orientationN = Simulink.BusElement;
+orientationN.Name = 'orientation';
+orientationN.DataType = 'Bus: QuaternionBusN';
+
+PoseBusN.Elements = [positionN orientationN];
 
 
-longVel = singleElem;
-longVel.Name = 'longitudinal_velocity_mps';
-
-latVel = singleElem;
-latVel.Name = 'lateral_velocity_mps';
-
-acc = singleElem;
-acc.Name = 'acceleration_mps2';
-
-headingRate = singleElem;
-headingRate.Name = 'heading_rate_rps';
-
-frontWheel = singleElem;
-frontWheel.Name = 'front_wheel_angle_rad';
-
-rearWheel = singleElem;
-rearWheel.Name = 'rear_wheel_angle_rad';
+poseN = Simulink.BusElement;
+poseN.Name = 'pose';
+poseN.DataType = 'Bus: PoseBusN';
 
 
-TrajectoryBus.Elements = [
-    trajectoryPoint
-    longVel
-    latVel
-    acc
-    headingRate
-    frontWheel
-    rearWheel
-];
+
+TrajectoryDataBus = Simulink.Bus;
+
+fields={
+    'longitudinal_velocity_mps'
+    'lateral_velocity_mps'
+    'acceleration_mps2'
+    'heading_rate_rps'
+    'front_wheel_angle_rad'
+    'rear_wheel_angle_rad'
+    };
 
 
+elements=poseN;
+
+
+for i=1:length(fields)
+
+    e=Simulink.BusElement;
+    e.Name=fields{i};
+    e.DataType='double';
+    e.Dimensions = 100;
+
+    elements=[elements;e];
+
+end
+
+
+TrajectoryDataBus.Elements=elements;
 
 %% ============================================================
 % CONTROL COMMAND
