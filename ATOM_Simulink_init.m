@@ -15,6 +15,7 @@ addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
 %% Load vehicle parameters
 
 vehicleParameters;
+velocity_smoother_params;
 
 
 %% Create Simulink buses
