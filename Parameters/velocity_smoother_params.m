@@ -5,13 +5,29 @@
 % autoware_launch/config/planning/scenario_planning/common/
 % autoware_velocity_smoother/velocity_smoother.param.yaml
 %
+%
 % Parameters used for:
 % - curvature calculation
 % - lateral acceleration limit
 % - steering rate limit
 %
 % Adapted for MATLAB/Simulink 4WS simulation
-% ============================================================
+% 
+% 
+% 
+% % Take care that from /mnt/ssd/autoware/src/launcher/autoware_launch/
+% tier4_universe_launch/tier4_planning_launch/launch/scenario_planning/scenario_planning.launch.xml
+% 
+% the velocity_smoother node is initialized, importing all the parameters
+% (collected in node_params_ and base_params_ in node.cpp). In particular
+% parameters are coming from:
+%   - velocity_smoother_path_param_type: /mnt/ssd/autoware/src/launcher/autoware_launch/autoware_launch/config/planning/scenario_planning/common/autoware_velocity_smoother/JerkFiltered.param.yaml
+%   - common_param_path: /mnt/ssd/autoware/src/launcher/autoware_launch/autoware_launch/config/planning/scenario_planning/common/common.param.yaml
+%   - velocity_smoother_param_path: /mnt/ssd/autoware/src/launcher/autoware_launch/autoware_launch/config/planning/scenario_planning/common/autoware_velocity_smoother/velocity_smoother.param.yaml
+%   - nearest_search_param_path: /mnt/ssd/autoware/src/launcher/autoware_launch/autoware_launch/config/planning/scenario_planning/common/nearest_search.param.yaml
+% 
+% Here just velocity_smoother_param_path parameters are reported.
+% % ============================================================
 
 
 %% ============================================================
