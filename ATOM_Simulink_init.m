@@ -17,6 +17,7 @@ addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
 vehicleParameters;
 velocity_smoother_params;
 planning_validator_params;
+stanley_params;
 
 
 %% Create Simulink buses

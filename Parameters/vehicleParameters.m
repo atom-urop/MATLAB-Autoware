@@ -1,3 +1,18 @@
+%% ================================================
+%  ATTENTION:
+%
+% If something like:
+%
+%  const auto vehicle_info = autoware::vehicle_info_utils::VehicleInfoUtils(node).getVehicleInfo();
+%  const double wheelbase = vehicle_info.wheel_base_m;
+%
+% is found, wheel_base_m is just picking up the same value we find in
+% vehicle_info.param.yaml. The name is just re-written in /mnt/ssd/autoware/src/core/autoware_core/common/
+% autoware_vehicle_info_utils/src/vehicle_info_utils.cpp file and
+% functions.
+%
+% =================================================
+
 vehicle.param.wheel_radius = 0.313; % The radius of the wheel, primarily used for dead reckoning.
 vehicle.param.wheel_width = 0.235; % The lateral width of a wheel tire, primarily used for dead reckoning.
 vehicle.param.wheel_base =  2.0; % between front wheel center and rear wheel center
@@ -13,6 +28,9 @@ vehicle.param.max_steer_angle = 0.70; % [rad]
 % Parameter for rear_steering_ratio is created for 4WS implementation:
 
 vehicle.param.rear_steering_ratio = -0.2;
+
+
+%% simulator_model.param.yaml
 
 vehicle.sim.vehicle_model_type = "DELAY_STEER_ACC_GEARED"; % options: IDEAL_STEER_VEL / IDEAL_STEER_ACC / IDEAL_STEER_ACC_GEARED / DELAY_STEER_ACC / DELAY_STEER_ACC_GEARED
 vehicle.sim.initialize_source = "INITIAL_POSE_TOPIC"; %  options: ORIGIN / INITIAL_POSE_TOPIC

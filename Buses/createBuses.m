@@ -123,6 +123,17 @@ acceleration.DataType = 'Bus: TwistBus';
 AccelerationBus.Elements = acceleration;
 
 
+%% ============================================================
+% /vehicle/status/steering_status
+% =============================================================
+
+SteeringBus = Simulink.Bus;
+
+steering = doubleElem;
+steering.Name = 'steering_tire_angle';
+
+SteeringBus.Elements = steering;
+
 
 %% ============================================================
 % /planning/trajectory
@@ -322,3 +333,63 @@ VehicleInternalStateBus.Elements = [
     steer_rear
     acc
 ];
+
+
+
+%% ============================================================
+% STANLEY INPUT DATA
+% State vector:
+%
+% X = [x y yaw front_steer lateral_err yaw_err]
+%
+% It's not a topic in Autoware. It's created to simulate the struct Data
+% necessary for the Stanley Controller
+% =============================================================
+
+PointBusStanley = Simulink.Bus;
+
+x = doubleElem;
+x.Name = 'x';
+
+y = doubleElem;
+y.Name = 'y';
+
+PointBusStanley.Elements = [x y];
+
+
+PoseBusStanley = Simulink.Bus;
+
+position = Simulink.BusElement;
+position.Name = 'position';
+position.DataType = 'Bus: PointBusStanley';
+
+orientation = Simulink.BusElement;
+orientation.Name = 'orientation';
+orientation.DataType = 'Bus: QuaternionBus';
+
+PoseBusStanley.Elements = [position orientation];
+
+
+
+StanleyInputDataBus = Simulink.Bus;
+
+NearestPose = Simulink.BusElement;
+NearestPose.Name = 'nearest_pose';
+NearestPose.DataType = 'Bus: PoseBusStanley';
+
+NearestIdx = doubleElem;
+NearestIdx.Name = 'nearest_idx';
+
+frontVelocity = doubleElem;
+frontVelocity.Name = 'front_velocity';
+
+frontSteer = doubleElem;
+frontSteer.Name = 'front_steer';
+
+lateralErr = doubleElem;
+lateralErr.Name = 'lateral_err';
+
+yawErr = doubleElem;
+yawErr.Name = 'yaw_err';
+
+StanleyInputDataBus.Elements = [NearestPose NearestIdx frontVelocity frontSteer lateralErr yawErr];
