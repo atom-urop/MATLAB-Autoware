@@ -17,6 +17,10 @@ singleElem = Simulink.BusElement;
 singleElem.DataType = 'single';
 singleElem.Dimensions = 1;
 
+boolElem = Simulink.BusElement;
+boolElem.DataType = 'boolean';
+boolElem.Dimensions = 1;
+
 
 %% ============================================================
 % GEOMETRY BUS
@@ -220,28 +224,41 @@ end
 
 TrajectoryDataBus.Elements=elements;
 
+
+%% ============================================================
+% LATERAL COMMAND
+% Equivalent to autoware_control_msgs/msg/Lateral, partly filling
+% the topic /control/trajectory_follower/control_cmd
+% =============================================================
+
+% Lateral
+
+LateralBus = Simulink.Bus;
+
+
+frontSteer = doubleElem;
+frontSteer.Name = 'steering_tire_angle';
+
+frontSteerRate = doubleElem;
+frontSteerRate.Name = 'steering_tire_rotation_rate';
+
+IsDefinedFrontSteerRate = boolElem;
+IsDefinedFrontSteerRate.Name = 'is_defined_steering_tire_rotation_rate';
+
+
+LateralBus.Elements = [
+    frontSteer
+    frontSteerRate
+    IsDefinedFrontSteerRate
+    ];
+
 %% ============================================================
 % CONTROL COMMAND
 % /control/command/control_cmd
 % =============================================================
 
 
-%% Lateral
 
-LateralBus = Simulink.Bus;
-
-
-frontSteer = doubleElem;
-frontSteer.Name = 'front_steering_tire_angle';
-
-rearSteer = doubleElem;                                 % Modified for 4WS
-rearSteer.Name = 'rear_steering_tire_angle';            % Modified for 4WS
-
-
-LateralBus.Elements = [
-    frontSteer
-    rearSteer
-];
 
 
 %% Longitudinal
@@ -363,24 +380,25 @@ position = Simulink.BusElement;
 position.Name = 'position';
 position.DataType = 'Bus: PointBusStanley';
 
-orientation = doubleElem;
+orientation = Simulink.BusElement;
+orientation.Name = 'orientation';
+orientation.DataType = 'Bus: QuaternionBus';
 
+PoseBusStanley.Elements = [position orientation];
 
 
 
 StanleyInputDataBus = Simulink.Bus;
 
-x = doubleElem;
-x.Name = 'x';
-
-y = doubleElem;
-y.Name = 'y';
-
-yaw = doubleElem;
-yaw.Name = 'yaw';
+NearestPose = Simulink.BusElement;
+NearestPose.Name = 'nearest_pose';
+NearestPose.DataType = 'Bus: PoseBusStanley';
 
 NearestIdx = doubleElem;
 NearestIdx.Name = 'nearest_idx';
+
+frontVelocity = doubleElem;
+frontVelocity.Name = 'front_velocity';
 
 frontSteer = doubleElem;
 frontSteer.Name = 'front_steer';
@@ -391,4 +409,18 @@ lateralErr.Name = 'lateral_err';
 yawErr = doubleElem;
 yawErr.Name = 'yaw_err';
 
-StanleyInputDataBus.Elements = [x y yaw NearestIdx frontSteer lateralErr yawErr];
+ref_curvature = doubleElem;
+ref_curvature.Name = 'ref_curvature';
+
+StanleyInputDataBus.Elements = [NearestPose NearestIdx frontVelocity frontSteer lateralErr yawErr ref_curvature];
+
+
+
+%% ==============================================
+%  STORAGE OFFSET bus;
+
+N1 = stanley.average_num;
+
+OffStorageElem = Simulink.BusElement;
+OffStorageElem.DataType = 'double';
+NElem.Dimensions = N1;

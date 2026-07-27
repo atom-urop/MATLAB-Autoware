@@ -18,6 +18,6 @@ stanley.steering_offset_limit = 0.02;
 
 % Coefficients for Stanley equation
 
-stanley.k_gain = 1;
-stanley.k_soft = 2;
-stanley.gain_4WS = 0.8;
+stanley.k_gain = 3;
+stanley.k_soft = 1.5;
+stanley.gain_4WS = 1;

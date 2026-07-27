@@ -17,6 +17,10 @@ singleElem = Simulink.BusElement;
 singleElem.DataType = 'single';
 singleElem.Dimensions = 1;
 
+boolElem = Simulink.BusElement;
+boolElem.DataType = 'boolean';
+boolElem.Dimensions = 1;
+
 
 %% ============================================================
 % GEOMETRY BUS
@@ -220,28 +224,41 @@ end
 
 TrajectoryDataBus.Elements=elements;
 
+
+%% ============================================================
+% LATERAL COMMAND
+% Equivalent to autoware_control_msgs/msg/Lateral, partly filling
+% the topic /control/trajectory_follower/control_cmd
+% =============================================================
+
+% Lateral
+
+LateralBus = Simulink.Bus;
+
+
+frontSteer = doubleElem;
+frontSteer.Name = 'steering_tire_angle';
+
+frontSteerRate = doubleElem;
+frontSteerRate.Name = 'steering_tire_rotation_rate';
+
+IsDefinedFrontSteerRate = boolElem;
+IsDefinedFrontSteerRate.Name = 'is_defined_steering_tire_rotation_rate';
+
+
+LateralBus.Elements = [
+    frontSteer
+    frontSteerRate
+    IsDefinedFrontSteerRate
+    ];
+
 %% ============================================================
 % CONTROL COMMAND
 % /control/command/control_cmd
 % =============================================================
 
 
-%% Lateral
 
-LateralBus = Simulink.Bus;
-
-
-frontSteer = doubleElem;
-frontSteer.Name = 'front_steering_tire_angle';
-
-rearSteer = doubleElem;                                 % Modified for 4WS
-rearSteer.Name = 'rear_steering_tire_angle';            % Modified for 4WS
-
-
-LateralBus.Elements = [
-    frontSteer
-    rearSteer
-];
 
 
 %% Longitudinal
@@ -392,4 +409,26 @@ lateralErr.Name = 'lateral_err';
 yawErr = doubleElem;
 yawErr.Name = 'yaw_err';
 
-StanleyInputDataBus.Elements = [NearestPose NearestIdx frontVelocity frontSteer lateralErr yawErr];
+ref_curvature = doubleElem;
+ref_curvature.Name = 'ref_curvature';
+
+StanleyInputDataBus.Elements = [NearestPose NearestIdx frontVelocity frontSteer lateralErr yawErr ref_curvature];
+
+
+
+%% ==============================================
+%  STORAGE OFFSET bus;
+%
+% ===============================================
+
+
+N1 = stanley.average_num;
+
+OffsetStorageBus = Simulink.Bus;
+
+OffStorageElem = Simulink.BusElement;
+OffStorageElem.DataType = 'double';
+OffStorageElem.Name = 'offset_storage';
+OffStorageElem.Dimensions = N1;
+
+OffsetStorageBus.Elements = OffStorageElem;
