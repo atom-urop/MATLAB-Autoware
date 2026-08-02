@@ -28,3 +28,7 @@ createBuses;
 %% Open Simulink model
 
 open_system("ATOM_simple_planning_simulator.slx");
+
+%open_system("ATOM_planning_sim_variable_rear_ratio.slx");
+
+%open_system("ATOM_planning_MPC.slx");
