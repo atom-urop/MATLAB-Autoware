@@ -5,12 +5,17 @@ clear;
 close all;
 
 
-%% Add folders to MATLAB path
+%% Add folders to MATLAB path- Andrea
 
-addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
-addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
-addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
 
+%% Add folders to MATLAB path - Hussein
+
+addpath("/home/husain5/MATLAB-Autoware/Parameters");
+addpath("/home/husain5/MATLAB-Autoware/Buses");
+addpath("/home/husain5/MATLAB-Autoware/Functions");
 
 %% Load vehicle parameters
 
