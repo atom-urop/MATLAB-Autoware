@@ -165,6 +165,35 @@ velocity_smoother.delta_yaw_threshold = 1.0472;
 % Allowed yaw difference between ego and trajectory [rad]
 
 
+%% ============================================================
+% LONGITUDINAL ACCELERATION LIMITS
+%
+% Source: common.param.yaml (normal.max_acc / normal.min_acc)
+% Not part of velocity_smoother.param.yaml — added here for
+% convenience in the Simulink port.
+% =============================================================
+
+velocity_smoother.max_acc = 1.0;
+% Planning acceleration limit [m/s^2]
+
+velocity_smoother.min_acc = -1.0;
+% Planning deceleration limit [m/s^2] (negative)
+
+
+%% ============================================================
+% VELOCITY PROFILE BOUNDARY CONDITIONS
+%
+% Not Autoware parameters. Specific to the Simulink
+% ComputeVelocityProfile implementation.
+% =============================================================
+
+velocity_smoother.v_start = 15.0;
+% Initial velocity constraint [m/s]. Set high to leave the
+% profile start unconstrained; later replaced by live ego vx.
+
+velocity_smoother.v_end = 0.0;
+% Terminal velocity [m/s]. Zero creates a stop at trajectory end.
+
 
 %% ============================================================
 % SIMPLIFIED VALUES FOR 4WS IMPLEMENTATION
