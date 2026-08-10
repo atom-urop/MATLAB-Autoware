@@ -23,6 +23,7 @@ vehicleParameters;
 velocity_smoother_params;
 planning_validator_params;
 stanley_params;
+PID_Longitudinal_Velocity_Controller_Parameters;
 
 
 %% Create Simulink buses
@@ -37,3 +38,6 @@ open_system("ATOM_simple_planning_simulator.slx");
 %open_system("ATOM_planning_sim_variable_rear_ratio.slx");
 
 %open_system("ATOM_planning_MPC.slx");
+
+%% To plot the actual velocity and acceleration along the path, at the end of the simulation run:
+%plotVehicleRun(out.veh_log)

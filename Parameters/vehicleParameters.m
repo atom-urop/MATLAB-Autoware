@@ -27,7 +27,7 @@ vehicle.param.max_steer_angle = 0.70; % [rad]
 
 % Parameter for rear_steering_ratio is created for 4WS implementation:
 
-vehicle.param.rear_steering_ratio = 0;
+vehicle.param.rear_steering_ratio = -0.3;
 
 
 %% simulator_model.param.yaml
