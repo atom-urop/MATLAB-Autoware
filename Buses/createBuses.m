@@ -397,11 +397,11 @@ NearestPose.DataType = 'Bus: PoseBusStanley';
 NearestIdx = doubleElem;
 NearestIdx.Name = 'nearest_idx';
 
-frontVelocity = doubleElem;
-frontVelocity.Name = 'front_velocity';
+velocity_x = doubleElem;
+velocity_x.Name = 'vel_x';
 
-frontSteer = doubleElem;
-frontSteer.Name = 'front_steer';
+velocity_y = doubleElem;
+velocity_y.Name = 'vel_y';
 
 lateralErr = doubleElem;
 lateralErr.Name = 'lateral_err';
@@ -412,7 +412,7 @@ yawErr.Name = 'yaw_err';
 ref_curvature = doubleElem;
 ref_curvature.Name = 'ref_curvature';
 
-StanleyInputDataBus.Elements = [NearestPose NearestIdx frontVelocity frontSteer lateralErr yawErr ref_curvature];
+StanleyInputDataBus.Elements = [NearestPose NearestIdx velocity_x velocity_y lateralErr yawErr ref_curvature];
 
 
 

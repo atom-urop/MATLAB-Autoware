@@ -231,4 +231,3 @@ velocity_smoother_row = [velocity_smoother.curvature_calculation_distance, ...
 vel_smoother.time = 0;
 vel_smoother.signals.values = velocity_smoother_row;     % 1xN numeric row
 vel_smoother.signals.dimensions = length(velocity_smoother_row);
-
