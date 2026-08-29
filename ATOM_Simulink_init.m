@@ -5,19 +5,20 @@ clear;
 close all;
 
 
-%% Add folders to MATLAB path - Andrea
-
-addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
-addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
-addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
-addpath("/home/andrea-ricetti/Documenti/MATLAB/LUT");
+% % Add folders to MATLAB path - Andrea
+% 
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
+% addpath("/home/andrea-ricetti/Documenti/MATLAB/LUT");
 
 
 %% Add folders to MATLAB path - Hussein
 
-%addpath("/home/husain5/MATLAB-Autoware/Parameters");
-%addpath("/home/husain5/MATLAB-Autoware/Buses");
-%addpath("/home/husain5/MATLAB-Autoware/Functions");
+addpath("/home/husain5/MATLAB-Autoware/Parameters");
+addpath("/home/husain5/MATLAB-Autoware/Buses");
+addpath("/home/husain5/MATLAB-Autoware/Functions");
+addpath("/home/husain5/MATLAB-Autoware/LUT");
 
 
 %% Load vehicle parameters
@@ -30,11 +31,15 @@ PID_Longitudinal_Velocity_Controller_Parameters;
 
 
 
-%% Load LUTs
+% %% Load LUTs-Andrea
+% 
+% load('LUT_gain4WS_computation.mat');
+% load('LUT_rr_computation.mat');
 
-load('LUT_gain4WS_computation.mat');
-load('LUT_rr_computation.mat');
+%% Load LUTs-Andrea
 
+load("/home/husain5/MATLAB-Autoware/LUT/LUT_gain4WS_computation.mat")
+load("/home/husain5/MATLAB-Autoware/LUT/LUT_rr_computation.mat")
 
 %% Create Simulink buses
 
