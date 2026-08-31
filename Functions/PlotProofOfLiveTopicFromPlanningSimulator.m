@@ -1,4 +1,4 @@
-function PlotLiveTopic()
+function PlotProofOfLiveTopicFromPlanningSimulator()
 % One captured message from
 % /planning/scenario_planning/velocity_smoother/trajectory
 % on the running Autoware stack.
