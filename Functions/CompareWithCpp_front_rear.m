@@ -3,8 +3,8 @@ function CompareWithCpp_front_rear()
 % Both sides use the SAME curvature (taken from the C++ CSV), so any
 % difference is attributable to the lookup, not to curvature calculation.
 
-T = readtable('/home/husain5/MATLAB-Autoware/TestDataFromAutoware_front_rear.csv');
-S = load('/home/husain5/MATLAB-Autoware/LUT/LUT_rr_computation.mat');
+T = readtable('~/MATLAB-Autoware/Velocity_Smoother_Autoware/TestDataFromAutoware_front_rear.csv');
+S = load('~/MATLAB-Autoware/LUT/LUT_rr_computation.mat');
 
 % --- Run the MATLAB reference on the C++ curvature ---
 traj = struct();
