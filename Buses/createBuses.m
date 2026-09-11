@@ -432,3 +432,47 @@ OffStorageElem.Name = 'offset_storage';
 OffStorageElem.Dimensions = N1;
 
 OffsetStorageBus.Elements = OffStorageElem;
+
+
+%% ============================================================
+% NAV_MSGS OCCUPANCY GRID
+% /planning/scenario_planning/parking/costmap_generator/occupancy_grid
+% =============================================================
+
+%% nav_msgs/MapMetaData
+
+MapMetaDataBus = Simulink.Bus;
+
+resolution = doubleElem;
+resolution.Name = 'resolution';
+
+width = Simulink.BusElement;
+width.Name       = 'width';
+width.DataType   = 'uint32';
+width.Dimensions = 1;
+
+height = Simulink.BusElement;
+height.Name       = 'height';
+height.DataType   = 'uint32';
+height.Dimensions = 1;
+
+origin = Simulink.BusElement;
+origin.Name     = 'origin';
+origin.DataType = 'Bus: PoseBus';
+
+MapMetaDataBus.Elements = [resolution width height origin];
+
+
+%% nav_msgs/OccupancyGrid
+
+OccupancyGridBus = Simulink.Bus;
+
+info = Simulink.BusElement;
+info.Name     = 'info';
+info.DataType = 'Bus: MapMetaDataBus';
+
+data = Simulink.BusElement;
+data.Name       = 'data';
+data.DataType   = 'int8';
+data.Dimensions = double([costmap_lot.msg.info.height, costmap_lot.msg.info.width]);
+OccupancyGridBus.Elements = [info data];

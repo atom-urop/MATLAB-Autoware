@@ -1,4 +1,4 @@
-function plotVehicleRun(veh_log)
+    function plotVehicleRun(veh_log)
 x = veh_log(:,1);  y = veh_log(:,2);
 v = veh_log(:,3);  a = veh_log(:,4);
 

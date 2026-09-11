@@ -28,6 +28,9 @@ velocity_smoother_params;
 planning_validator_params;
 stanley_params;
 PID_Longitudinal_Velocity_Controller_Parameters;
+costmap_lot      = CostMapGenerator('perpendicular_lot', vehicle);
+costmap_empty    = CostMapGenerator('empty_lot',         vehicle);
+costmap_corridor = CostMapGenerator('narrow_corridor',   vehicle);
 
 
 
