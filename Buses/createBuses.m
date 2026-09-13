@@ -474,5 +474,5 @@ info.DataType = 'Bus: MapMetaDataBus';
 data = Simulink.BusElement;
 data.Name       = 'data';
 data.DataType   = 'int8';
-data.Dimensions = double([costmap_lot.msg.info.height, costmap_lot.msg.info.width]);
+data.Dimensions = [234 234];   % 70.0 m / 0.3 m, from costmap_generator.param.yaml
 OccupancyGridBus.Elements = [info data];
