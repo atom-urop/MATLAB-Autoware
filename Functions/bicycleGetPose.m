@@ -20,9 +20,12 @@ end
 Lr = base_length / 2;
 Lf = base_length / 2;
 L = base_length;
-beta = atan((Lr*tan(steer_f) + Lf*tan(steer_r)) / (Lf + Lr));  %Modified for 4WS          % heading change over this arc
-%%4WS curvature
-kappa = (tan(steer_f) - tan(steer_r)) * cos(beta) / L;
+L = base_length;
+
+beta = steer_r;
+
+kappa = cos(steer_r) * ...
+        (tan(steer_f) - tan(steer_r)) / L; %Modified 4WS
 
 if abs(kappa) < 1e-10
     x2 = x + distance*cos(th + beta);
