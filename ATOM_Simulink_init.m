@@ -29,9 +29,6 @@ planning_validator_params;
 stanley_params;
 PID_Longitudinal_Velocity_Controller_Parameters;
 
-scenario = 'perpendicular_lot';    % 'perpendicular_lot' | 'empty_lot' | 'narrow_corridor'
-
-
 
 
 % %% Load LUTs-Andrea

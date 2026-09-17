@@ -1,4 +1,4 @@
-%% 4WS in all cases
+%%% 4WS in all cases
 function [x2, y2, th2] = bicycleGetPose(x, y, th, steer_f, steer_r, base_length, distance)
 %BICYCLEGETPOSE  Where does the car end up after one move?
 %
