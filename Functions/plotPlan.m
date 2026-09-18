@@ -1,3 +1,4 @@
+% Plot with only the optimal path
 function plotPlan(costmap, vehicle, path, step)
 %PLOTPLAN  Draw the planned parking maneuver as a sequence of vehicle rectangles.
 %
@@ -82,3 +83,4 @@ drawnow;
              'EdgeColor', col, 'LineWidth', 2);
     end
 end
+

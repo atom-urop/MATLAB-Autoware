@@ -37,6 +37,7 @@ vehicle.param.max_steer_angle = veh(10);
 % --- plan ---------------------------------------------------------------
 path = hybridAstar(cm, vehicle, start_pose(:)', goal_pose(:)');
 
+
 if isempty(path)
     warning('planParkingTrajectory: no plan found - emitting a zero trajectory');
     return;
