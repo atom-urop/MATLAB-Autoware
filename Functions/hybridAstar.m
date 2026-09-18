@@ -46,12 +46,27 @@ W = double(costmap.width);  H = double(costmap.height);
 CAP    = 200000;
 nodes  = zeros(CAP,11);        % x y th g f is_back si dir_dist parent
 closed = false(CAP,1);
+
 seen   = zeros(W*H*theta_size, 1, 'int32');    % grid key -> node row
+
+% Sparse storage: state key -> row in nodes
+% seen = containers.Map( ...
+%     'KeyType', 'uint64', ...
+%     'ValueType', 'int32');
+
 openF  = zeros(CAP,1);  openI = zeros(CAP,1);  on = 0;
 
 nodes(1,:) = [start_pose(1) start_pose(2) start_pose(3) 0 0 0 0 0 0 0 0];
 nodes(1,5) = heur_w*hypot(start_pose(1)-goal_pose(1), start_pose(2)-goal_pose(2));
+
 seen(k3(start_pose(1),start_pose(2),start_pose(3))) = 1;
+
+% start_key = stateKey( ...
+%     start_pose(1), start_pose(2), start_pose(3), ...
+%     0, 0, false);
+% 
+% seen(start_key) = int32(1);
+
 nn = 1;  on = 1;  openF(1) = nodes(1,5);  openI(1) = 1;
 
 found = 0;
@@ -69,7 +84,7 @@ for iter = 1:max_iter
     costmap, vehicle, ...
     nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
     max_turning_ratio, turning_steps, step);
-    
+
     for j = 1:size(nxt,1)
         nx = nxt(j,1);  
         ny = nxt(j,2);  
@@ -82,37 +97,50 @@ for iter = 1:max_iter
         kk = k3(nx,ny,nth);  
         r = seen(kk);
         if r > 0 && closed(r), continue; end
-
+        % kk = stateKey( ...
+        %     nx, ny, nth, ...
+        %     front_index, rear_index, is_back);
+        % 
+        % if isKey(seen, kk)
+        %     r = double(seen(kk));
+        % else
+        %     r = 0;
+        % end
+        % 
+        % if r > 0 && closed(r)
+        %     continue;
+        % end
+        % 
         switched = (nodes(cur,11) ~= 0) && (is_back ~= nodes(cur,6));
 
         %% Steering magnitude cost
-        
+
         normalized_steering = ...
             max(abs(front_index),abs(rear_index)) / turning_steps;
-        
+
         w = 1 + curve_w*normalized_steering;
-        
+
         if is_back
             w = w*(1 + reverse_w);
         end
-        
+
         %% Steering-change cost
-        
+
         % Steering indices used to reach the current node
         previous_front_index = nodes(cur,7);
         previous_rear_index  = nodes(cur,8); %This is for the purpose of adding the rate of change of steering into the cost function
-        
+
         % Normalized change between the previous and candidate commands
         front_change = ...
             abs(front_index - previous_front_index) / turning_steps;
-        
+
         rear_change = ...
             abs(rear_index - previous_rear_index) / turning_steps;
-        
+
         %% Quadratic cost strongly penalizes sharp steering changes
         steering_change_cost = steer_change_w * ...
             (front_change^2 + rear_change^2);
-        
+
         %% Obstacle-clearance cost
         clearance_cost = 0;
 
@@ -149,12 +177,12 @@ for iter = 1:max_iter
         end
 
         %% Complete accumulated cost
-        
+
         g = nodes(cur,4) + ...
             w*step + ...
             steering_change_cost + ...
             clearance_cost;
-        
+
         if switched
             g = g + dir_w*(1 + 1/(1 + nodes(cur,10)));
         end
@@ -191,6 +219,41 @@ end
         it = mod(round(mod(th,2*pi)/(2*pi/theta_size)), theta_size);
         kk = it*(W*H) + iy*W + ix + 1;
     end
+    % function kk = stateKey( ...
+    %         x, y, th, front_index, rear_index, is_back)
+    % 
+    %     % Discretized pose
+    %     ix = round((x-ox)/res);
+    %     iy = round((y-oy)/res);
+    % 
+    %     it = mod( ...
+    %         round(mod(th,2*pi)/(2*pi/theta_size)), ...
+    %         theta_size);
+    % 
+    %     % Zero-based pose identifier
+    %     pose_key = ...
+    %         uint64(it) * uint64(W*H) + ...
+    %         uint64(iy) * uint64(W) + ...
+    %         uint64(ix);
+    % 
+    %     % Steering indices range from -turning_steps to +turning_steps
+    %     number_of_steering_values = uint64(2*turning_steps + 1);
+    % 
+    %     front_key = uint64(front_index + turning_steps);
+    %     rear_key  = uint64(rear_index  + turning_steps);
+    %     direction_key = uint64(logical(is_back));
+    % 
+    %     % Unique key for:
+    %     % pose + front steering + rear steering + direction
+    %     kk = pose_key;
+    % 
+    %     kk = kk * number_of_steering_values + front_key;
+    %     kk = kk * number_of_steering_values + rear_key;
+    %     kk = kk * uint64(2) + direction_key;
+    % 
+    %     % Keep key strictly positive
+    %     kk = kk + uint64(1);
+    % end
 
     function tf = atGoal(r)
         dx =  cos(goal_pose(3))*(nodes(r,1)-goal_pose(1)) + sin(goal_pose(3))*(nodes(r,2)-goal_pose(2));

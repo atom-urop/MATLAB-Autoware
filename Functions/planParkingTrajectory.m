@@ -34,6 +34,12 @@ vehicle.param.left_overhang   = veh(7);
 vehicle.param.right_overhang  = veh(8);
 vehicle.param.max_steer_angle = veh(10);
 
+% Make the current map available even if planning fails
+assignin('base', 'costmap_active', struct('msg', msg));
+
+% Remove any path left by a previous simulation
+assignin('base', 'parking_path', zeros(0,4));
+
 % --- plan ---------------------------------------------------------------
 path = hybridAstar(cm, vehicle, start_pose(:)', goal_pose(:)');
 

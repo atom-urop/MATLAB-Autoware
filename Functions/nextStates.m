@@ -175,7 +175,7 @@ end
 %         end
 %     end
 % end
-
+% 
 
 %==========================================================================
 % 4WS ONLY COUNTER PHASE EXPANSIONS
@@ -201,7 +201,8 @@ end
 % 
 % % One straight pair plus:
 % % 2N counter-phase pairs and 2N in-phase pairs
-% steering_pairs = zeros(4*turning_steps + 1, 3);
+% % Straight plus 2*turning_steps counter-phase commands
+% steering_pairs = zeros(2*turning_steps + 1, 3);
 % 
 % row = 1;
 % steering_pairs(row,:) = [0, 0, 0];
