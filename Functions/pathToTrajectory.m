@@ -10,7 +10,13 @@ function [x,y,z,qx,qy,qz,qw,vx,vy,ax,wz,df,dr] = pathToTrajectory(path, seg, v_m
 % v_mps : placeholder speed; velocity_smoother overwrites it anyway
 
 N = 100;
-if size(path,1) >= 2, path(1,4) = path(2,4); end   % start node inherits the first move's direction
+% if size(path,1) >= 2, path(1,4) = path(2,4); end   % start node inherits the first move's direction
+
+if size(path,1) >= 2
+    nc = min(6, size(path,2));
+    path(1,4:nc) = path(2,4:nc);   % start inherits the first move's direction AND steering
+end
+
 if nargin < 3, v_mps = 8/3.6; end          % same 8 km/h as the sinusoid block
 
 % cut at every direction change
@@ -33,5 +39,13 @@ qz = sin(yaw/2);   qw = cos(yaw/2);        % same convention as the sinusoid blo
 
 vx = v_mps*ones(N,1);   if P(1,4) == 1, vx = -vx; end   % reverse segment
 vy = zeros(N,1);   ax = zeros(N,1);   wz = zeros(N,1);
-df = zeros(N,1);   dr = zeros(N,1);        % rear angle: the 4WS slot, empty for now
+% df = zeros(N,1);   dr = zeros(N,1);        % rear angle: the 4WS slot, empty for now
+if size(P,2) >= 6
+    % 'previous' holds each command constant over its arc. The planner
+    % commanded discrete steering steps, not a smooth sweep between them.
+    df = interp1(s, P(:,5), sq, 'previous');
+    dr = interp1(s, P(:,6), sq, 'previous');
+else
+    df = zeros(N,1);   dr = zeros(N,1);
+end
 end

@@ -38,7 +38,8 @@ vehicle.param.max_steer_angle = veh(10);
 assignin('base', 'costmap_active', struct('msg', msg));
 
 % Remove any path left by a previous simulation
-assignin('base', 'parking_path', zeros(0,4));
+% assignin('base', 'parking_path', zeros(0,4));
+assignin('base', 'parking_path', zeros(0,7));
 
 % --- plan ---------------------------------------------------------------
 path = hybridAstar(cm, vehicle, start_pose(:)', goal_pose(:)');
@@ -56,4 +57,5 @@ assignin('base', 'costmap_active', struct('msg', msg));
 % --- first gear segment -> the 13 bus signals ---------------------------
 [x,y,z,qx,qy,qz,qw,vx,vy,ax,wz,df,dr] = pathToTrajectory(path, 1);
 T = [x y z qx qy qz qw vx vy ax wz df dr];
+assignin('base','plan_traj', T);
 end

@@ -1,5 +1,7 @@
 %==========================================================================
-%% 4WS with new approach (new cost function) : added a term for the steering rate + added costs around obstacles
+%% 4WS with new approach (new cost function) : added a term for the steering rate 
+% + added costs around obstacles
+% + added new cases for the heuristic function
 function path = hybridAstar(costmap, vehicle, start_pose, goal_pose)
 %HYBRIDASTAR  The search loop.
 %
@@ -21,9 +23,9 @@ theta_size = 120;                      % yaml
 curve_w    = 0.5;   
 reverse_w = 0.7;   % curve_weight, reverse_weight
 dir_w      = 2.0;   
-heur_w    = 2.0;   % direction_change_weight, distance_heuristic_weight
-steer_change_w = 0.1; % The weight used for the steering rate 
-clearance_w = 0.5;          % Experimental starting weight to an obstacle
+heur_w    = 2.0; %1.2   % direction_change_weight, distance_heuristic_weight
+steer_change_w = 0.01; % The weight used for the steering rate 
+clearance_w = 0.4;%0.5          % Experimental starting weight to an obstacle
 clearance_preferred = 0.6;  % Preferred additional clearance to an obstacle [m]
 
 
@@ -31,17 +33,35 @@ lon_r = 0.25;
 lat_r = 0.15;
 ang_r = deg2rad(2); %goal pose tolerance
 
-%%Parameters to tune!!
+%% Heuristics
+heuristic_type = 1;
+% 1 = Euclidean
+% 2 = position + orientation lower bound
+
+%% Parameters to tune!!
 max_turning_ratio = 0.8;
+
+delta_max = vehicle.param.max_steer_angle * max_turning_ratio;
+% Maximum curvature for symmetric 4WS counter-phase:
+% front = +delta_max, rear = -delta_max
+kappa_max = 2*sin(delta_max) / vehicle.param.wheel_base;
+
+
 turning_steps     = 5;
 step  = 0.5;                           % expansion_distance
 
-max_iter = 100000;
+max_iter = 1000000;
 
 
 
 res = costmap.res;  ox = costmap.origin(1);  oy = costmap.origin(2);
 W = double(costmap.width);  H = double(costmap.height);
+% Calculate the obstacle-distance map once per search.
+grid_heuristic = [];
+
+if heuristic_type == 3
+    grid_heuristic = buildDijkstraHeuristic(costmap, goal_pose);
+end
 
 CAP    = 200000;
 nodes  = zeros(CAP,11);        % x y th g f is_back si dir_dist parent
@@ -57,7 +77,10 @@ seen   = zeros(W*H*theta_size, 1, 'int32');    % grid key -> node row
 openF  = zeros(CAP,1);  openI = zeros(CAP,1);  on = 0;
 
 nodes(1,:) = [start_pose(1) start_pose(2) start_pose(3) 0 0 0 0 0 0 0 0];
-nodes(1,5) = heur_w*hypot(start_pose(1)-goal_pose(1), start_pose(2)-goal_pose(2));
+
+% nodes(1,5) = heur_w*hypot(start_pose(1)-goal_pose(1), start_pose(2)-goal_pose(2));
+nodes(1,5) = heur_w * heuristicCost( ...
+    start_pose(1), start_pose(2), start_pose(3)); %new heuristic approach
 
 seen(k3(start_pose(1),start_pose(2),start_pose(3))) = 1;
 
@@ -189,8 +212,8 @@ for iter = 1:max_iter
 
 
 
-        f = g + heur_w*hypot(nx-goal_pose(1), ny-goal_pose(2)); %%The complete cost computation when adding the cummulative g cost with the heuristic cost that is f = g + 2*h
-
+        % f = g + heur_w*hypot(nx-goal_pose(1), ny-goal_pose(2)); %%The complete cost computation when adding the cummulative g cost with the heuristic cost that is f = g + 2*h
+        f = g + heur_w*heuristicCost(nx, ny, nth); %%Computation of the Hybrid A* cost function considering the different approaches of the heuristic function
 
         if r == 0 || f < nodes(r,5)
             if r == 0, nn = nn + 1;  r = nn;  seen(kk) = int32(r); end
@@ -206,13 +229,148 @@ end
 if found
     ch = found;
     while nodes(ch(end),11) ~= 0, ch(end+1) = nodes(ch(end),11); end   %#ok<AGROW>
-    path = nodes(flip(ch), [1 2 3 6]);
+    %path = nodes(flip(ch), [1 2 3 6]);
+    path = nodes(flip(ch), [1 2 3 6 7 8 9]);
+
+    % Columns 5 and 6 are steering INDICES. Convert them to radians.
+    steer_res = vehicle.param.max_steer_angle * max_turning_ratio / turning_steps;
+    path(:,5) = path(:,5) * steer_res;      % front wheel angle [rad]
+    path(:,6) = path(:,6) * steer_res;      % rear  wheel angle [rad]
+
     fprintf('plan found: %.2f m, %d reversals, %d iterations\n', ...
         sum(hypot(diff(path(:,1)),diff(path(:,2)))), nnz(diff(path(:,4))~=0), iter);
 else
-    path = zeros(0,4);
+    % path = zeros(0,4);
+    path = zeros(0,7);
     fprintf('no plan after %d iterations\n', iter);
 end
+
+
+%% Functions
+%Heuristic function cost computation according to different approaches
+    function h = heuristicCost(x, y, theta)
+
+        % Position error
+        position_distance = hypot( ...
+            x-goal_pose(1), ...
+            y-goal_pose(2));
+
+        switch heuristic_type
+
+            case 1
+                % Original Euclidean heuristic
+                h = position_distance;
+
+            case 2
+                % Wrapped orientation error in [0, pi]
+                angle_error = abs(atan2( ...
+                    sin(theta-goal_pose(3)), ...
+                    cos(theta-goal_pose(3))));
+
+                % Minimum distance needed to correct orientation
+                orientation_distance = angle_error / kappa_max;
+
+                h = max(position_distance, orientation_distance);
+            case 3
+                % Default when a grid estimate is unavailable.
+                h = position_distance;
+
+                % Convert the candidate position into map indices.
+                ix = round((x - ox)/res) + 1;
+                iy = round((y - oy)/res) + 1;
+
+                if ix >= 1 && ix <= W && iy >= 1 && iy <= H
+                    obstacle_distance = grid_heuristic(iy, ix);
+
+                    if isfinite(obstacle_distance)
+                        h = max(position_distance, obstacle_distance);
+                    end
+                end
+
+            otherwise
+                h = position_distance;
+        end
+    end
+
+%%Dijkstra's function used for the heuristic function in case 3
+    function hmap = buildDijkstraHeuristic(costmap, goal_pose)
+        %BUILDDIJKSTRAHEURISTIC  Eight-neighbour Dijkstra distance to the goal [m].
+        % Call once per planning request, then look up hmap(row, column) at each node.
+        % costmap.grid uses the planner's 0..1 values (unknown < 0), NOT bus 0..100.
+        % This is a point-robot grid estimate; footprint, heading and steering costs
+        % remain the responsibility of Hybrid A*. It is not a proven lower bound
+        % for continuous vehicle motion, because grid directions/positions are finite.
+        % Inf means occupied, disconnected, or an unavailable goal cell. The caller
+        % should fall back to its Euclidean estimate rather than prune those nodes.
+        % MATLAB graph/distances run in the existing extrinsic planner function.
+
+        res = double(costmap.res);
+        W = double(costmap.width);
+        H = double(costmap.height);
+        origin = double(costmap.origin);
+
+        validateattributes(res, {'double'}, {'scalar','finite','positive'});
+        validateattributes(W, {'double'}, {'scalar','finite','integer','positive'});
+        validateattributes(H, {'double'}, {'scalar','finite','integer','positive'});
+        validateattributes(origin, {'double'}, {'vector','numel',2,'finite'});
+        validateattributes(goal_pose, {'numeric'}, {'vector','numel',3,'real','finite'});
+        assert(numel(costmap.grid) == H*W, ...
+            'buildDijkstraHeuristic:GridSize', 'Grid size does not match height/width.');
+
+        grid = reshape(double(costmap.grid), H, W);
+        free = isfinite(grid) & grid >= 0 & grid < 1;
+        hmap = inf(H,W);
+
+        % Match Hybrid A*'s world-to-cell convention (MATLAB indexing adds one).
+        gx = round((double(goal_pose(1))-origin(1))/res) + 1;
+        gy = round((double(goal_pose(2))-origin(2))/res) + 1;
+        if gx < 1 || gx > W || gy < 1 || gy > H
+            warning('buildDijkstraHeuristic:GoalOutside', ...
+                'Goal cell is outside the grid; use the Euclidean fallback.');
+            return;
+        end
+        if ~free(gy,gx)
+            warning('buildDijkstraHeuristic:GoalBlocked', ...
+                'Goal cell is occupied/unknown; use the Euclidean fallback.');
+            return;
+        end
+
+        node_id = reshape(1:H*W, H, W);
+        % Four directions are enough for an undirected graph (eight neighbours).
+        offsets = [1 0; 0 1; 1 1; 1 -1]; % [column offset, row offset]
+        sources = cell(4,1);
+        targets = cell(4,1);
+        weights = cell(4,1);
+
+        for k = 1:4
+            dc = offsets(k,1);
+            dr = offsets(k,2);
+            rows = max(1,1-dr):min(H,H-dr);
+            cols = max(1,1-dc):min(W,W-dc);
+
+            valid = free(rows,cols) & free(rows+dr,cols+dc);
+            if dc ~= 0 && dr ~= 0
+                % Do not connect diagonally through the corner of an occupied cell.
+                valid = valid & free(rows,cols+dc) & free(rows+dr,cols);
+            end
+
+            from = node_id(rows,cols);
+            to = node_id(rows+dr,cols+dc);
+            sources{k} = from(valid);
+            targets{k} = to(valid);
+            sources{k} = sources{k}(:);
+            targets{k} = targets{k}(:);
+            weights{k} = res*hypot(dc,dr)*ones(numel(sources{k}),1);
+        end
+
+        G = graph(vertcat(sources{:}), vertcat(targets{:}), ...
+            vertcat(weights{:}), H*W);
+        goal_id = node_id(gy,gx);
+        % Supply ONE source. Omitting goal_id would compute a huge all-pairs matrix.
+        d = distances(G, goal_id, 'Method', 'positive');
+        hmap = reshape(d, H, W);
+    end
+
 
     function kk = k3(x,y,th)
         ix = round((x-ox)/res);   iy = round((y-oy)/res);
