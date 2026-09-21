@@ -9,7 +9,7 @@ close all;
 % -
 % addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
 % addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
-% addpath("/home/andrea-ricetti/Documenti/MATLAB/Functions");
+% addpath(genpath("/home/andrea-ricetti/Documenti/MATLAB/Functions"));
 % addpath("/home/andrea-ricetti/Documenti/MATLAB/LUT");
 
 
@@ -17,7 +17,7 @@ close all;
 
 addpath("/home/husain5/MATLAB-Autoware/Parameters");
 addpath("/home/husain5/MATLAB-Autoware/Buses");
-addpath("/home/husain5/MATLAB-Autoware/Functions");
+addpath(genpath("/home/husain5/MATLAB-Autoware/Functions"));
 addpath("/home/husain5/MATLAB-Autoware/LUT");
 
 
