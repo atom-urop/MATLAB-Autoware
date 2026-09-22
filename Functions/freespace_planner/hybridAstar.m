@@ -23,9 +23,9 @@ theta_size = 120;                      % yaml
 curve_w    = 0.5;   
 reverse_w = 0.7;   % curve_weight, reverse_weight
 dir_w      = 2.0;   
-heur_w    = 2.0; %1.2   % direction_change_weight, distance_heuristic_weight
+heur_w    = 1.2; %1.2   % direction_change_weight, distance_heuristic_weight
 steer_change_w = 0.01; % The weight used for the steering rate 
-clearance_w = 0.4;%0.5          % Experimental starting weight to an obstacle
+clearance_w = 0.5;%0.5          % Experimental starting weight to an obstacle
 clearance_preferred = 0.6;  % Preferred additional clearance to an obstacle [m]
 
 

@@ -43,8 +43,8 @@ vy = zeros(N,1);   ax = zeros(N,1);   wz = zeros(N,1);
 if size(P,2) >= 6
     % 'previous' holds each command constant over its arc. The planner
     % commanded discrete steering steps, not a smooth sweep between them.
-    df = interp1(s, P(:,5), sq, 'previous');
-    dr = interp1(s, P(:,6), sq, 'previous');
+    df = interp1(s, P(:,5), sq, 'next');   % stretch k -> k+1 uses the steering stored in point k+1
+    dr = interp1(s, P(:,6), sq, 'next');
 else
     df = zeros(N,1);   dr = zeros(N,1);
 end
