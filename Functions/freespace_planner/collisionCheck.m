@@ -41,12 +41,26 @@ if ix0 < 0 || iy0 < 0 || ix1 > W-1 || iy1 > H-1
     hit = true;  return;
 end
 
-% --- of the cells in that box, which are really under the car? ----------
+% % --- of the cells in that box, which are really under the car? ----------
 [IX, IY] = meshgrid(ix0:ix1, iy0:iy1);
 dx = ox + IX*res - x;   dy = oy + IY*res - y;
 bx =  cos(theta)*dx + sin(theta)*dy;              % into the car's own frame
 by = -sin(theta)*dx + cos(theta)*dy;
 under = bx >= back & bx <= front & by >= right & by <= left;
+
+% --- which occupied CELLS touch the inflated car? -----------------------
+% A cell is a res x res square. Testing only its corner point can miss a
+% cell that reaches up to one cell width into the car. Test the cell
+% CENTRE against the car rectangle grown by half the cell diagonal: every
+% cell whose area touches the inflated car is then detected.
+% r   = res/sqrt(2);                                 % half cell diagonal [m]
+% ix0 = max(ix0-1, 0);  ix1 = min(ix1+1, W-1);       % look one cell further
+% iy0 = max(iy0-1, 0);  iy1 = min(iy1+1, H-1);
+% [IX, IY] = meshgrid(ix0:ix1, iy0:iy1);
+% dx = ox + (IX+0.5)*res - x;   dy = oy + (IY+0.5)*res - y;   % cell centres
+% bx =  cos(theta)*dx + sin(theta)*dy;              % into the car's own frame
+% by = -sin(theta)*dx + cos(theta)*dy;
+% under = bx >= back-r & bx <= front+r & by >= right-r & by <= left+r;
 
 % --- is any of them occupied? -------------------------------------------
 % costmap.grid is 0/1; the ROS message carries 0/100. obstacle_threshold=100.

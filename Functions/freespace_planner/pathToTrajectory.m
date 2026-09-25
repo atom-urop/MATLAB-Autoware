@@ -20,8 +20,23 @@ end
 if nargin < 3, v_mps = 8/3.6; end          % same 8 km/h as the sinusoid block
 
 % cut at every direction change
-cuts = [1; find(diff(path(:,4)) ~= 0) + 1; size(path,1)+1];
-P = path(cuts(seg) : cuts(seg+1)-1, :);
+% Find the first point reached using each new direction.
+direction_change_points = find(diff(path(:,4)) ~= 0) + 1;
+
+% Consecutive segments share the position immediately before each
+% direction change. This position is where the vehicle stops and reverses.
+segment_starts = [1; direction_change_points - 1];
+segment_ends   = [direction_change_points - 1; size(path,1)];
+
+P = path(segment_starts(seg):segment_ends(seg), :);
+
+% For every segment after a direction change, the shared first position
+% inherits the direction and steering of the new segment.
+if seg > 1 && size(P,1) >= 2
+    nc = min(6, size(P,2));
+    P(1,4:nc) = P(2,4:nc);
+end
+
 if size(P,1) < 2
     error('pathToTrajectory: segment %d has fewer than 2 points', seg);
 end
