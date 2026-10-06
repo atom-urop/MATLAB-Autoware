@@ -67,3 +67,213 @@ under = bx >= back & bx <= front & by >= right & by <= left;
 cells = costmap.grid(sub2ind([H W], IY(under)+1, IX(under)+1));
 hit   = any(cells >= 1 | cells < 0);
 end
+
+
+
+%==========================================================================
+% function hit = collisionCheck(costmap, vehicle, x, y, theta)
+% %COLLISIONCHECK
+% % Return true if the enlarged vehicle footprint:
+% %   1. leaves the costmap, or
+% %   2. intersects the square area of an occupied/unknown costmap cell.
+% %
+% % The pose (x,y,theta) is the rear-axle-centre pose.
+% %
+% % IMPORTANT:
+% % This project currently places grid-cell centres at:
+% %
+% %     centre_x = origin_x + column_index*resolution
+% %     centre_y = origin_y + row_index*resolution
+% %
+% % This matches the existing costmap generators and imagesc plots.
+% 
+% %% 1. Enlarged vehicle footprint
+% 
+% p = vehicle.param;
+% 
+% % Total increase in vehicle length and width.
+% % This gives 0.25 m around every side of the vehicle.
+% margin = 0.5;
+% 
+% back = -(p.rear_overhang + margin/2);
+% 
+% front = ...
+%     p.wheel_base + ...
+%     p.front_overhang + ...
+%     margin/2;
+% 
+% right = -( ...
+%     p.wheel_tread + ...
+%     p.left_overhang + ...
+%     p.right_overhang + ...
+%     margin)/2;
+% 
+% left = -right;
+% 
+% %% 2. Vehicle corners in world coordinates
+% 
+% ct = cos(theta);
+% st = sin(theta);
+% 
+% R = [ct -st;
+%      st  ct];
+% 
+% corners_body = [ ...
+%     front, front, back, back;
+%     left,  right, right, left];
+% 
+% corners_world = R*corners_body + [x; y];
+% 
+% vehicle_min_x = min(corners_world(1,:));
+% vehicle_max_x = max(corners_world(1,:));
+% vehicle_min_y = min(corners_world(2,:));
+% vehicle_max_y = max(corners_world(2,:));
+% 
+% %% 3. Costmap information
+% 
+% res = double(costmap.res);
+% 
+% ox = double(costmap.origin(1));
+% oy = double(costmap.origin(2));
+% 
+% W = double(costmap.width);
+% H = double(costmap.height);
+% 
+% % Half-width of one square costmap cell.
+% cell_half = res/2;
+% 
+% %% 4. Check whether the vehicle leaves the costmap
+% 
+% % In the current project convention, ox and oy are the centres of the
+% % first grid cell. Therefore the map area extends half a cell beyond the
+% % first and last cell centres.
+% 
+% map_min_x = ox - cell_half;
+% map_max_x = ox + (W-1)*res + cell_half;
+% 
+% map_min_y = oy - cell_half;
+% map_max_y = oy + (H-1)*res + cell_half;
+% 
+% if vehicle_min_x < map_min_x || ...
+%    vehicle_max_x > map_max_x || ...
+%    vehicle_min_y < map_min_y || ...
+%    vehicle_max_y > map_max_y
+% 
+%     hit = true;
+%     return;
+% end
+% 
+% %% 5. Find costmap cells that could touch the vehicle
+% 
+% % Include every cell whose square area can reach the axis-aligned
+% % bounding box of the rotated vehicle.
+% 
+% ix0 = ceil((vehicle_min_x - cell_half - ox)/res);
+% ix1 = floor((vehicle_max_x + cell_half - ox)/res);
+% 
+% iy0 = ceil((vehicle_min_y - cell_half - oy)/res);
+% iy1 = floor((vehicle_max_y + cell_half - oy)/res);
+% 
+% % Keep indices inside the costmap.
+% ix0 = max(0,ix0);
+% ix1 = min(W-1,ix1);
+% 
+% iy0 = max(0,iy0);
+% iy1 = min(H-1,iy1);
+% 
+% if ix0 > ix1 || iy0 > iy1
+%     hit = false;
+%     return;
+% end
+% 
+% %% 6. Keep only occupied or unknown cells
+% 
+% region = costmap.grid( ...
+%     iy0+1:iy1+1, ...
+%     ix0+1:ix1+1);
+% 
+% [local_row,local_col] = find( ...
+%     region >= 1 | region < 0);
+% 
+% if isempty(local_row)
+%     hit = false;
+%     return;
+% end
+% 
+% % Convert local region indices into complete costmap indices.
+% cell_ix = ix0 + local_col - 1;
+% cell_iy = iy0 + local_row - 1;
+% 
+% % Centres of the occupied cells.
+% cell_x = ox + cell_ix*res;
+% cell_y = oy + cell_iy*res;
+% 
+% %% 7. Represent the vehicle as an oriented rectangle
+% 
+% % The rear axle is not the geometric centre of the vehicle rectangle.
+% vehicle_centre_offset = (front + back)/2;
+% 
+% vehicle_centre_x = x + ct*vehicle_centre_offset;
+% vehicle_centre_y = y + st*vehicle_centre_offset;
+% 
+% vehicle_half_length = (front - back)/2;
+% vehicle_half_width  = (left - right)/2;
+% 
+% % Vector from the vehicle rectangle centre to each occupied-cell centre.
+% dx = cell_x - vehicle_centre_x;
+% dy = cell_y - vehicle_centre_y;
+% 
+% %% 8. Exact rectangle-versus-square intersection using SAT
+% 
+% % SAT = Separating Axis Theorem.
+% %
+% % The vehicle and cell intersect only if their projections overlap on:
+% %   1. world x-axis;
+% %   2. world y-axis;
+% %   3. vehicle longitudinal axis;
+% %   4. vehicle lateral axis.
+% 
+% tolerance = 1e-12;
+% 
+% % Projection sizes on the world axes.
+% vehicle_projection_x = ...
+%     vehicle_half_length*abs(ct) + ...
+%     vehicle_half_width*abs(st);
+% 
+% vehicle_projection_y = ...
+%     vehicle_half_length*abs(st) + ...
+%     vehicle_half_width*abs(ct);
+% 
+% overlap_world_x = ...
+%     abs(dx) <= vehicle_projection_x + cell_half + tolerance;
+% 
+% overlap_world_y = ...
+%     abs(dy) <= vehicle_projection_y + cell_half + tolerance;
+% 
+% % Cell-centre displacement expressed along the vehicle axes.
+% distance_longitudinal = ct*dx + st*dy;
+% distance_lateral      = -st*dx + ct*dy;
+% 
+% % Projection of an axis-aligned square cell onto either rotated vehicle
+% % axis.
+% cell_projection_rotated = ...
+%     cell_half*(abs(ct) + abs(st));
+% 
+% overlap_vehicle_longitudinal = ...
+%     abs(distance_longitudinal) <= ...
+%     vehicle_half_length + cell_projection_rotated + tolerance;
+% 
+% overlap_vehicle_lateral = ...
+%     abs(distance_lateral) <= ...
+%     vehicle_half_width + cell_projection_rotated + tolerance;
+% 
+% % Intersection exists if all four projection tests overlap.
+% cell_intersects_vehicle = ...
+%     overlap_world_x & ...
+%     overlap_world_y & ...
+%     overlap_vehicle_longitudinal & ...
+%     overlap_vehicle_lateral;
+% 
+% hit = any(cell_intersects_vehicle);
+% 
+% end

@@ -24,7 +24,7 @@ curve_w    = 0.5;
 reverse_w = 0.7;   % curve_weight, reverse_weight
 dir_w      = 2.0;   
 heur_w    = 1.2; %1.2   % direction_change_weight, distance_heuristic_weight
-steer_change_w = 0.01; % The weight used for the steering rate 
+steer_change_w = 0.1; % The weight used for the steering rate 
 clearance_w = 0.5;%0.5          % Experimental starting weight to an obstacle
 clearance_preferred = 0.6;  % Preferred additional clearance to an obstacle [m]
 
@@ -47,7 +47,7 @@ delta_max = vehicle.param.max_steer_angle * max_turning_ratio;
 kappa_max = 2*sin(delta_max) / vehicle.param.wheel_base;
 
 
-turning_steps     = 5;
+turning_steps     = 2;%it was 5
 step  = 0.5;                           % expansion_distance
 
 max_iter = 1000000;
@@ -625,16 +625,53 @@ end
 %     end
 % end
 % 
+% % if found
+% %     ch = found;
+% %     while nodes(ch(end),9) ~= 0, ch(end+1) = nodes(ch(end),9); end   %#ok<AGROW>
+% %     path = nodes(flip(ch), [1 2 3 6]);
+% %     fprintf('plan found: %.2f m, %d reversals, %d iterations\n', ...
+% %         sum(hypot(diff(path(:,1)),diff(path(:,2)))), nnz(diff(path(:,4))~=0), iter);
+% % else
+% % 
+% %     path = zeros(0,4);
+% %     fprintf('no plan after %d iterations\n', iter);
+% % end
 % if found
 %     ch = found;
-%     while nodes(ch(end),9) ~= 0, ch(end+1) = nodes(ch(end),9); end   %#ok<AGROW>
-%     path = nodes(flip(ch), [1 2 3 6]);
+% 
+%     while nodes(ch(end),9) ~= 0
+%         ch(end+1) = nodes(ch(end),9);
+%     end
+% 
+%     % Extract:
+%     % [x, y, theta, is_back, front_steering_index]
+%     path = nodes(flip(ch), [1 2 3 6 7]);
+% 
+%     % These values must match the active 2WS nextStates function.
+%     max_turning_ratio = 0.8;
+%     turning_steps     = 5;
+% 
+%     steer_res = ...
+%         vehicle.param.max_steer_angle * ...
+%         max_turning_ratio / turning_steps;
+% 
+%     % Convert the front steering index to radians.
+%     path(:,5) = path(:,5)*steer_res;
+% 
+%     % The rear steering is fixed at zero for 2WS.
+%     path(:,6) = 0;
+% 
+%     % Mode 0 = straight, mode 4 = front steering only.
+%     path(:,7) = 4*double(abs(path(:,5)) > 0);
+% 
 %     fprintf('plan found: %.2f m, %d reversals, %d iterations\n', ...
-%         sum(hypot(diff(path(:,1)),diff(path(:,2)))), nnz(diff(path(:,4))~=0), iter);
+%         sum(hypot(diff(path(:,1)),diff(path(:,2)))), ...
+%         nnz(diff(path(:,4))~=0), iter);
 % else
-%     path = zeros(0,4);
+%     path = zeros(0,7);
 %     fprintf('no plan after %d iterations\n', iter);
-% end
+% end% added for the sake of the number of inputs and architecture acceptable by the nmpc
+% 
 % 
 %     function kk = k3(x,y,th)
 %         ix = round((x-ox)/res);   iy = round((y-oy)/res);

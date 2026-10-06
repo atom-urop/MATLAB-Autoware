@@ -175,7 +175,7 @@ end
 %         end
 %     end
 % end
-% 
+
 
 %==========================================================================
 % 4WS ONLY COUNTER PHASE EXPANSIONS
@@ -279,7 +279,8 @@ end
 %     d = expansion_distance;
 %     if is_back, d = -d; end
 %     for si = -turning_steps : turning_steps
-%         [x2, y2, th2] = bicycleGetPose(x, y, th, si*steer_res, L, d);
+%         [x2, y2, th2] = bicycleGetPose( ...
+%     x, y, th, si*steer_res, 0, L, d);
 %         if ~collisionCheck(costmap, vehicle, x2, y2, th2)
 %             nxt(end+1,:) = [x2 y2 th2 double(is_back) si];    %#ok<AGROW>
 %         end

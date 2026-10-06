@@ -50,8 +50,8 @@ end
 
 
 
-%==========================================================================
-%% 2WS
+% %==========================================================================
+% %% 2WS
 % function [x2, y2, th2] = bicycleGetPose(x, y, th, steer, base_length, distance)
 % %BICYCLEGETPOSE  Where does the car end up after one move?
 % %
