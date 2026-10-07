@@ -242,7 +242,16 @@ if found
 else
     % path = zeros(0,4);
     path = zeros(0,7);
-    fprintf('no plan after %d iterations\n', iter);
+    if on == 0
+        fprintf( ...
+            'NO PLAN: search queue empty at iteration %d.\n', ...
+            iter);
+    else
+        fprintf( ...
+            ['NO PLAN: iteration limit reached (%d). ', ...
+             'Remaining queue entries: %d.\n'], ...
+            max_iter, on);
+    end
 end
 
 
