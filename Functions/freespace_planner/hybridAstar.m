@@ -50,6 +50,11 @@ kappa_max = 2*sin(delta_max) / vehicle.param.wheel_base;
 turning_steps     = 2;%it was 5
 step  = 0.5;                           % expansion_distance
 
+% 1 = counter-phase only
+% 2 = counter-phase and in-phase
+% 3 = full 4WIS
+steering_configuration = 2;
+
 max_iter = 1000000;
 
 
@@ -104,9 +109,10 @@ for iter = 1:max_iter
     if atGoal(cur), found = cur; break; end
 
     nxt = nextStates( ...
-    costmap, vehicle, ...
-    nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
-    max_turning_ratio, turning_steps, step);
+        costmap, vehicle, ...
+        nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
+        max_turning_ratio, turning_steps, step, ...
+        steering_configuration);
 
     for j = 1:size(nxt,1)
         nx = nxt(j,1);  
