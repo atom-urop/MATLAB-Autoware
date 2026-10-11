@@ -1,4 +1,4 @@
-%==========================================================================
+% %==========================================================================
 %% 4WS with new approach (new cost function) : added a term for the steering rate 
 % + added costs around obstacles
 % + added new cases for the heuristic function
@@ -25,7 +25,7 @@ reverse_w = 0.7;   % curve_weight, reverse_weight
 dir_w      = 2.0;   
 heur_w    = 1.2; %1.2   % direction_change_weight, distance_heuristic_weight
 steer_change_w = 0.1; % The weight used for the steering rate 
-clearance_w = 0.5;%0.5          % Experimental starting weight to an obstacle
+clearance_w = 5;%0.5          % Experimental starting weight to an obstacle
 clearance_preferred = 0.6;  % Preferred additional clearance to an obstacle [m]
 
 
@@ -47,13 +47,13 @@ delta_max = vehicle.param.max_steer_angle * max_turning_ratio;
 kappa_max = 2*sin(delta_max) / vehicle.param.wheel_base;
 
 
-turning_steps     = 2;%it was 5
+turning_steps  = 1;%it was 5
 step  = 0.5;                           % expansion_distance
 
 % 1 = counter-phase only
 % 2 = counter-phase and in-phase
 % 3 = full 4WIS
-steering_configuration = 2;
+steering_configuration = 3;
 
 max_iter = 1000000;
 

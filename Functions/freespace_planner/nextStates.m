@@ -1,4 +1,4 @@
-%%Unified 4W for all cases
+% %%Unified 4W for all cases
 function nxt = nextStates( ...
     costmap, vehicle, x, y, th, ...
     max_turning_ratio, turning_steps, expansion_distance, ...
@@ -504,7 +504,7 @@ end
 
 
 %==========================================================================
-% %% 2WS
+%% 2WS
 % function nxt = nextStates(costmap, vehicle, x, y, th)
 % %NEXTSTATES  The six moves available from one state.
 % %

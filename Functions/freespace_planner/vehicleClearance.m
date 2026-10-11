@@ -7,7 +7,7 @@ function d = vehicleClearance(costmap, vehicle, x, y, th, d_preferred)
 % The result is capped at d_preferred: larger distances cost nothing.
 
 p = vehicle.param;
-margin = 0.5;  % Must match collisionCheck
+margin = 0.5;%0.5  % Must match collisionCheck
 
 back  = -(p.rear_overhang + margin/2);
 front = p.wheel_base + p.front_overhang + margin/2;

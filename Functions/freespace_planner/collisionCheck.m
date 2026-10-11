@@ -290,7 +290,7 @@ function hit = collisionCheck(costmap, vehicle, x, y, theta)
 p = vehicle.param;
 
 % The 0.5 m total enlargement gives 0.25 m clearance on every side.
-margin = 0.5;
+margin = 0.5;%0.5
 
 back = -(p.rear_overhang + margin/2);
 
