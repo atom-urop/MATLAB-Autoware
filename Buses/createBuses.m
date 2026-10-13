@@ -197,6 +197,37 @@ poseN.DataType = 'Bus: PoseBusN';
 
 TrajectoryDataBus = Simulink.Bus;
 
+%% Parking time-parameterized reference
+
+ParkingReferenceBus = Simulink.Bus;
+
+referenceFields = {
+    't_ref'
+    's_ref'
+    'x_ref'
+    'y_ref'
+    'psi_ref'
+    'v_ref'
+    'a_ref'
+    'df_nom'
+    'dr_nom'
+    };
+
+referenceElements = [];
+
+for i = 1:length(referenceFields)
+
+    e = Simulink.BusElement;
+    e.Name = referenceFields{i};
+    e.DataType = 'double';
+    e.Dimensions = N;
+
+    referenceElements = [referenceElements; e];
+
+end
+
+ParkingReferenceBus.Elements = referenceElements;
+
 fields={
     'longitudinal_velocity_mps'
     'lateral_velocity_mps'

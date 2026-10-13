@@ -110,8 +110,20 @@ if reset_plan || isempty(cached_path)
     assignin('base', 'parking_path', zeros(0,7));
 
     % This is the slow operation. It runs only for a new plan.
+    % cached_path = hybridAstar( ...
+    %     cm, vehicle, start_pose(:)', goal_pose(:)');
+    planner_timer = tic;
+
     cached_path = hybridAstar( ...
         cm, vehicle, start_pose(:)', goal_pose(:)');
+
+    planner_time_seconds = toc(planner_timer);
+
+    fprintf('Hybrid A* planning time: %.3f seconds\n', ...
+        planner_time_seconds);
+
+    assignin('base', ...
+        'planner_time_seconds', planner_time_seconds);
 
     if isempty(cached_path)
         warning(['planParkingTrajectory: no plan found - ', ...

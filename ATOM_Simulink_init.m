@@ -53,8 +53,9 @@ createBuses;
 
 %open_system("ATOM_pred_sim_variable_rear_ratio_lateral.slx");
 
-open_system("ATOM_simple_planning_simulator.slx");
+%open_system("ATOM_simple_planning_simulator.slx");
 
+open_system("ATOM_parking_chain");
 
 
 %% To plot the actual velocity and acceleration along the path, at the end of the simulation run:

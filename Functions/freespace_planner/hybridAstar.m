@@ -23,7 +23,7 @@ theta_size = 120;                      % yaml
 curve_w    = 0.5;   
 reverse_w = 0.7;   % curve_weight, reverse_weight
 dir_w      = 2.0;   
-heur_w    = 1.2; %1.2   % direction_change_weight, distance_heuristic_weight
+heur_w    = 1.2; %3.7   % direction_change_weight, distance_heuristic_weight
 steer_change_w = 0.1; % The weight used for the steering rate 
 clearance_w = 5;%0.5          % Experimental starting weight to an obstacle
 clearance_preferred = 0.6;  % Preferred additional clearance to an obstacle [m]
@@ -47,7 +47,7 @@ delta_max = vehicle.param.max_steer_angle * max_turning_ratio;
 kappa_max = 2*sin(delta_max) / vehicle.param.wheel_base;
 
 
-turning_steps  = 1;%it was 5
+turning_steps  = 2;%it was 5
 step  = 0.5;                           % expansion_distance
 
 % 1 = counter-phase only

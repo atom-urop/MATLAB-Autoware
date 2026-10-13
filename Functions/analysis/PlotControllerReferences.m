@@ -1,366 +1,835 @@
-function PlotControllerReferences(logData, kIdx)
-%PLOTCONTROLLERREFERENCES Plot references received by the controller.
+function PlotControllerReferences(logData, segmentSnapshots)
+% PlotControllerReferences
 %
-% Logged matrix column order:
-%   1: x position [m]
-%   2: y position [m]
-%   3: front steering reference [rad]
-%   4: rear steering reference [rad]
-%   5: longitudinal velocity reference [m/s]
-%   6: acceleration reference [m/s^2]
+% Plots the complete controller-reference trajectory across all maneuver
+% segments.
 %
-% Examples:
+% Expected logger columns:
+%   1: x position                       [m]
+%   2: y position                       [m]
+%   3: front steering reference         [rad]
+%   4: rear steering reference          [rad]
+%   5: longitudinal velocity reference  [m/s]
+%   6: acceleration reference           [m/s^2]
+%
+% Automatic segment detection:
 %   PlotControllerReferences(out.controller_reference_log)
-%   PlotControllerReferences(out.controller_reference_log, 125)
 %
-% If Single simulation output is disabled:
-%   PlotControllerReferences(controller_reference_log)
+% Optional manual segment snapshots:
+%   PlotControllerReferences(out.controller_reference_log, [125 3836])
 
-if nargin < 2
-    kIdx = [];
-end
-
-%% Unwrap common Simulink logging formats
-
-if isa(logData, 'Simulink.SimulationData.Signal')
-    logData = logData.Values;
-end
-
-if isa(logData, 'timeseries')
-    logData = logData.Data;
-
-elseif isstruct(logData) && isfield(logData, 'signals')
-    logData = logData.signals.values;
-end
-
-logData = double(logData);
-
-%% Extract one trajectory snapshot
-
-if ndims(logData) == 3
-
-    % Expected dimensions:
-    % [trajectory points x 6 references x simulation steps]
-    if size(logData, 2) ~= 6
-        error('PlotControllerReferences:InvalidSignalCount', ...
-            ['Expected six logged signals, but the logged array ' ...
-             'has size %s.'], mat2str(size(logData)));
+    if nargin < 2
+        segmentSnapshots = [];
     end
 
-    numberOfSnapshots = size(logData, 3);
+    %% Plot colours
 
-    if isempty(kIdx)
-        % Automatically select the last snapshot containing data.
-        snapshotHasData = squeeze(any(any(logData ~= 0, 1), 2));
-        kIdx = find(snapshotHasData, 1, 'last');
+    figureBackground   = [0.00 0.00 0.00];
+    axesBackground     = [0.055 0.055 0.055];
+    foreground         = [0.88 0.88 0.88];
+    gridColour         = [0.38 0.38 0.38];
 
-        if isempty(kIdx)
-            error('PlotControllerReferences:EmptyLog', ...
-                'The controller reference log contains only zeros.');
+    frontColour        = [0.10 0.35 1.00];
+    rearColour         = [1.00 0.10 0.10];
+    velocityColour     = [0.05 0.80 0.35];
+    accelerationColour = [1.00 0.35 0.05];
+
+    %% Extract the numerical logging array
+
+    logData = unwrapReferenceLog(logData);
+
+    if ~isnumeric(logData)
+        error(['The controller-reference log must contain a ', ...
+               'numerical array.']);
+    end
+
+    logData = double(logData);
+
+    if isempty(logData)
+        error('The controller-reference log is empty.');
+    end
+
+    if size(logData,2) ~= 6 || ndims(logData) > 3
+        error(['Expected reference data with dimensions ', ...
+               '[trajectory points x 6 x snapshots].']);
+    end
+
+    numberOfSnapshots = size(logData,3);
+
+    %% Select the best snapshot from every trajectory segment
+
+    if isempty(segmentSnapshots)
+
+        [segmentSnapshots, segmentDirections] = ...
+            findSegmentSnapshots(logData);
+
+    else
+
+        validateattributes(segmentSnapshots, {'numeric'}, ...
+            {'vector', 'integer', 'positive', ...
+             '<=', numberOfSnapshots}, ...
+             mfilename, 'segmentSnapshots');
+
+        segmentSnapshots = unique( ...
+            segmentSnapshots(:).', 'stable');
+
+        segmentDirections = zeros(size(segmentSnapshots));
+
+        for segmentIndex = 1:numel(segmentSnapshots)
+
+            snapshot = cleanSnapshot( ...
+                logData(:,:,segmentSnapshots(segmentIndex)));
+
+            segmentDirections(segmentIndex) = ...
+                findReferenceDirection(snapshot);
         end
     end
 
-    if kIdx < 1 || kIdx > numberOfSnapshots || kIdx ~= floor(kIdx)
-        error('PlotControllerReferences:InvalidSnapshot', ...
-            'Snapshot index must be an integer from 1 to %d.', ...
-            numberOfSnapshots);
+    if isempty(segmentSnapshots)
+        error(['No valid reference trajectory was found in ', ...
+               'controller_reference_log.']);
     end
 
-    M = logData(:, :, kIdx);
+    %% Extract the selected segments
 
-elseif ismatrix(logData) && size(logData, 2) == 6
+    numberOfSegments = numel(segmentSnapshots);
 
-    % A single [trajectory points x 6] snapshot.
-    M = logData;
-    kIdx = 1;
+    segments = cell(1, numberOfSegments);
+    segmentLengths = zeros(1, numberOfSegments);
 
-else
-    error('PlotControllerReferences:InvalidLogShape', ...
-        ['Unexpected logged-data size %s. Expected either ' ...
-         '[points x 6] or [points x 6 x snapshots].'], ...
-         mat2str(size(logData)));
+    for segmentIndex = 1:numberOfSegments
+
+        snapshotIndex = segmentSnapshots(segmentIndex);
+
+        currentSegment = cleanSnapshot( ...
+            logData(:,:,snapshotIndex));
+
+        if size(currentSegment,1) < 2
+            error('Snapshot %d does not contain a valid path.', ...
+                  snapshotIndex);
+        end
+
+        segments{segmentIndex} = currentSegment;
+
+        segmentLengths(segmentIndex) = sum(hypot( ...
+            diff(currentSegment(:,1)), ...
+            diff(currentSegment(:,2))));
+    end
+
+    %% Orient adjoining segments consistently
+
+    for segmentIndex = 2:numberOfSegments
+
+        previousSegment = segments{segmentIndex - 1};
+        currentSegment  = segments{segmentIndex};
+
+        previousEndpoint = previousSegment(end,1:2);
+
+        distanceToCurrentStart = norm( ...
+            previousEndpoint - currentSegment(1,1:2));
+
+        distanceToCurrentEnd = norm( ...
+            previousEndpoint - currentSegment(end,1:2));
+
+        % Reverse the point order when the end is closer to the
+        % preceding segment than the beginning.
+        if distanceToCurrentEnd < distanceToCurrentStart
+            currentSegment = flipud(currentSegment);
+        end
+
+        segments{segmentIndex} = currentSegment;
+    end
+
+    %% Join the trajectory segments
+
+    completeReference = [];
+
+    segmentStart = zeros(1, numberOfSegments);
+    segmentEnd   = zeros(1, numberOfSegments);
+
+    for segmentIndex = 1:numberOfSegments
+
+        currentSegment = segments{segmentIndex};
+
+        if ~isempty(completeReference)
+
+            joiningDistance = norm( ...
+                completeReference(end,1:2) - ...
+                currentSegment(1,1:2));
+
+            joiningTolerance = calculateJoiningTolerance( ...
+                completeReference, currentSegment);
+
+            % Remove a duplicated segment junction.
+            if joiningDistance <= joiningTolerance
+                currentSegment(1,:) = [];
+            end
+        end
+
+        if isempty(currentSegment)
+            continue;
+        end
+
+        segmentStart(segmentIndex) = ...
+            size(completeReference,1) + 1;
+
+        completeReference = [
+            completeReference
+            currentSegment
+        ]; %#ok<AGROW>
+
+        segmentEnd(segmentIndex) = ...
+            size(completeReference,1);
+    end
+
+    if isempty(completeReference)
+        error('The combined reference trajectory is empty.');
+    end
+
+    %% Extract complete reference signals
+
+    xPosition     = completeReference(:,1);
+    yPosition     = completeReference(:,2);
+    frontSteering = completeReference(:,3);
+    rearSteering  = completeReference(:,4);
+    velocity      = completeReference(:,5);
+    acceleration  = completeReference(:,6);
+
+    trajectoryPoint = (1:size(completeReference,1)).';
+
+    totalPathLength = sum(segmentLengths);
+
+    snapshotText = strtrim( ...
+        sprintf('%d ', segmentSnapshots));
+
+    %% Figure 1: references by complete trajectory point
+
+    pointFigure = getDockedFigure( ...
+        'ATOMReferencePointFigure', ...
+        'Controller references by trajectory point', ...
+        figureBackground);
+
+    pointLayout = tiledlayout(pointFigure, 3, 1, ...
+        'TileSpacing', 'compact', ...
+        'Padding', 'compact');
+
+    title(pointLayout, sprintf( ...
+        'Complete controller-reference trajectory — %d segments', ...
+        numberOfSegments), ...
+        'Color', foreground, ...
+        'FontWeight', 'bold');
+
+    % Steering references
+    steeringAxes = nexttile(pointLayout, 1);
+
+    plot(steeringAxes, ...
+        trajectoryPoint, frontSteering, ...
+        'Color', frontColour, ...
+        'LineWidth', 1.7, ...
+        'DisplayName', 'Front reference');
+
+    hold(steeringAxes, 'on');
+
+    plot(steeringAxes, ...
+        trajectoryPoint, rearSteering, ...
+        'Color', rearColour, ...
+        'LineWidth', 1.7, ...
+        'DisplayName', 'Rear reference');
+
+    yline(steeringAxes, 0, ':', ...
+        'Color', [0.55 0.55 0.55], ...
+        'HandleVisibility', 'off');
+
+    addSegmentBoundaries(steeringAxes, segmentStart);
+
+    title(steeringAxes, 'Steering references');
+    ylabel(steeringAxes, 'Steering [rad]');
+    xlabel(steeringAxes, 'Complete trajectory point');
+
+    steeringLegend = legend(steeringAxes, ...
+        'Location', 'best');
+
+    applyDarkAxesStyle(steeringAxes, ...
+        axesBackground, foreground, gridColour);
+
+    applyDarkLegendStyle(steeringLegend, ...
+        axesBackground, foreground);
+
+    % Velocity reference
+    velocityAxes = nexttile(pointLayout, 2);
+
+    plot(velocityAxes, ...
+        trajectoryPoint, velocity, ...
+        'Color', velocityColour, ...
+        'LineWidth', 1.7);
+
+    hold(velocityAxes, 'on');
+
+    yline(velocityAxes, 0, ':', ...
+        'Color', [0.55 0.55 0.55], ...
+        'HandleVisibility', 'off');
+
+    addSegmentBoundaries(velocityAxes, segmentStart);
+
+    title(velocityAxes, ...
+        'Longitudinal velocity reference');
+
+    ylabel(velocityAxes, 'Velocity [m/s]');
+    xlabel(velocityAxes, 'Complete trajectory point');
+
+    applyDarkAxesStyle(velocityAxes, ...
+        axesBackground, foreground, gridColour);
+
+    % Acceleration reference
+    accelerationAxes = nexttile(pointLayout, 3);
+
+    plot(accelerationAxes, ...
+        trajectoryPoint, acceleration, ...
+        'Color', accelerationColour, ...
+        'LineWidth', 1.7);
+
+    hold(accelerationAxes, 'on');
+
+    yline(accelerationAxes, 0, ':', ...
+        'Color', [0.55 0.55 0.55], ...
+        'HandleVisibility', 'off');
+
+    addSegmentBoundaries(accelerationAxes, segmentStart);
+
+    title(accelerationAxes, 'Acceleration reference');
+    ylabel(accelerationAxes, 'Acceleration [m/s^2]');
+    xlabel(accelerationAxes, 'Complete trajectory point');
+
+    applyDarkAxesStyle(accelerationAxes, ...
+        axesBackground, foreground, gridColour);
+
+    linkaxes( ...
+        [steeringAxes, velocityAxes, accelerationAxes], 'x');
+
+    xlim(steeringAxes, ...
+        [1, max(2, numel(trajectoryPoint))]);
+
+    %% Figure 2: reference values along the complete spatial path
+
+    pathFigure = getDockedFigure( ...
+        'ATOMReferencePathFigure', ...
+        'Controller references along path', ...
+        figureBackground);
+
+    pathLayout = tiledlayout(pathFigure, 2, 2, ...
+        'TileSpacing', 'compact', ...
+        'Padding', 'compact');
+
+    title(pathLayout, sprintf( ...
+        ['Complete controller-reference path — %d segments, ' ...
+         'selected snapshots: %s'], ...
+        numberOfSegments, snapshotText), ...
+        'Color', foreground, ...
+        'FontWeight', 'bold');
+
+    frontPathAxes = nexttile(pathLayout, 1);
+
+    plotPathReference(frontPathAxes, ...
+        xPosition, yPosition, frontSteering, ...
+        segmentStart, segmentEnd, ...
+        'Front steering reference', ...
+        'Front steering [rad]', ...
+        axesBackground, foreground, gridColour);
+
+    rearPathAxes = nexttile(pathLayout, 2);
+
+    plotPathReference(rearPathAxes, ...
+        xPosition, yPosition, rearSteering, ...
+        segmentStart, segmentEnd, ...
+        'Rear steering reference', ...
+        'Rear steering [rad]', ...
+        axesBackground, foreground, gridColour);
+
+    velocityPathAxes = nexttile(pathLayout, 3);
+
+    plotPathReference(velocityPathAxes, ...
+        xPosition, yPosition, velocity, ...
+        segmentStart, segmentEnd, ...
+        'Velocity reference', ...
+        'Velocity [m/s]', ...
+        axesBackground, foreground, gridColour);
+
+    accelerationPathAxes = nexttile(pathLayout, 4);
+
+    plotPathReference(accelerationPathAxes, ...
+        xPosition, yPosition, acceleration, ...
+        segmentStart, segmentEnd, ...
+        'Acceleration reference', ...
+        'Acceleration [m/s^2]', ...
+        axesBackground, foreground, gridColour);
+
+    %% Print diagnostic information
+
+    fprintf('\nComplete controller-reference trajectory\n');
+    fprintf('Available snapshots: %d\n', numberOfSnapshots);
+    fprintf('Selected snapshots : %s\n', snapshotText);
+    fprintf('Detected segments  : %d\n', numberOfSegments);
+    fprintf('Trajectory points  : %d\n', size(completeReference,1));
+    fprintf('Combined path      : %.3f m\n', totalPathLength);
+
+    for segmentIndex = 1:numberOfSegments
+
+        fprintf(['  Segment %d: snapshot %d, %s, ' ...
+                 'length %.3f m\n'], ...
+            segmentIndex, ...
+            segmentSnapshots(segmentIndex), ...
+            directionName(segmentDirections(segmentIndex)), ...
+            segmentLengths(segmentIndex));
+    end
+
+    fprintf('Front steering     : %+0.4f to %+0.4f rad\n', ...
+        min(frontSteering), max(frontSteering));
+
+    fprintf('Rear steering      : %+0.4f to %+0.4f rad\n', ...
+        min(rearSteering), max(rearSteering));
+
+    fprintf('Velocity           : %+0.4f to %+0.4f m/s\n', ...
+        min(velocity), max(velocity));
+
+    fprintf('Acceleration       : %+0.4f to %+0.4f m/s^2\n\n', ...
+        min(acceleration), max(acceleration));
+
+    drawnow;
 end
 
-%% Separate the reference signals
 
-x = M(:,1);
-y = M(:,2);
+function data = unwrapReferenceLog(data)
+% Extract numerical data from common Simulink logging containers.
 
-frontReference = M(:,3);
-rearReference  = M(:,4);
+    if isa(data, 'Simulink.SimulationData.Signal')
+        data = data.Values;
+    end
 
-velocityReference     = M(:,5);
-accelerationReference = M(:,6);
+    if isa(data, 'timeseries')
+        data = data.Data;
+    end
 
-trajectoryPoint = (1:size(M,1)).';
+    if isstruct(data) && isscalar(data)
 
-%% Remove nonfinite samples
+        if isfield(data, 'signals') && ...
+                isfield(data.signals, 'values')
 
-valid = ...
-    isfinite(x)                     & ...
-    isfinite(y)                     & ...
-    isfinite(frontReference)        & ...
-    isfinite(rearReference)         & ...
-    isfinite(velocityReference)     & ...
-    isfinite(accelerationReference);
+            data = data.signals.values;
 
-x = x(valid);
-y = y(valid);
+        elseif isfield(data, 'Data')
 
-frontReference = frontReference(valid);
-rearReference  = rearReference(valid);
-
-velocityReference     = velocityReference(valid);
-accelerationReference = accelerationReference(valid);
-
-trajectoryPoint = trajectoryPoint(valid);
-
-if isempty(trajectoryPoint)
-    error('PlotControllerReferences:NoValidPoints', ...
-        'The selected snapshot does not contain valid trajectory points.');
-end
-
-%% Dark-theme colors
-
-figureBackground = [0.025 0.025 0.025];
-
-frontColor       = [0.20 0.55 1.00];
-rearColor        = [1.00 0.25 0.25];
-velocityColor    = [0.15 0.85 0.40];
-accelerationColor = [1.00 0.45 0.12];
-
-zeroLineColor = [0.65 0.65 0.65];
-
-%% Figure 1: references versus trajectory-point number
-
-figure( ...
-    'Name', 'Controller references by trajectory point', ...
-    'Color', figureBackground, ...
-    'Position', [100 80 1100 820]);
-
-tiledlayout(3, 1, ...
-    'TileSpacing', 'compact', ...
-    'Padding', 'compact');
-
-% Front and rear steering references
-ax1 = nexttile;
-
-plot(ax1, trajectoryPoint, frontReference, ...
-    '-', ...
-    'Color', frontColor, ...
-    'LineWidth', 2.0);
-
-hold(ax1, 'on');
-
-plot(ax1, trajectoryPoint, rearReference, ...
-    '-', ...
-    'Color', rearColor, ...
-    'LineWidth', 2.0);
-
-yline(ax1, 0, ':', ...
-    'Color', zeroLineColor, ...
-    'LineWidth', 1.0, ...
-    'HandleVisibility', 'off');
-
-grid(ax1, 'on');
-
-ylabel(ax1, 'Steering [rad]');
-
-title(ax1, sprintf( ...
-    'References received by controller - snapshot %d', kIdx));
-
-lgd = legend(ax1, ...
-    {'Front reference', 'Rear reference'}, ...
-    'Location', 'best');
-
-applyDarkStyle(ax1);
-applyDarkLegendStyle(lgd);
-
-% Velocity reference
-ax2 = nexttile;
-
-plot(ax2, trajectoryPoint, velocityReference, ...
-    '-', ...
-    'Color', velocityColor, ...
-    'LineWidth', 2.0);
-
-grid(ax2, 'on');
-
-ylabel(ax2, 'Velocity [m/s]');
-title(ax2, 'Longitudinal velocity reference');
-
-applyDarkStyle(ax2);
-
-% Acceleration reference
-ax3 = nexttile;
-
-plot(ax3, trajectoryPoint, accelerationReference, ...
-    '-', ...
-    'Color', accelerationColor, ...
-    'LineWidth', 2.0);
-
-hold(ax3, 'on');
-
-yline(ax3, 0, ':', ...
-    'Color', zeroLineColor, ...
-    'LineWidth', 1.0, ...
-    'HandleVisibility', 'off');
-
-grid(ax3, 'on');
-
-xlabel(ax3, 'Trajectory point');
-ylabel(ax3, 'Acceleration [m/s^2]');
-title(ax3, 'Acceleration reference');
-
-applyDarkStyle(ax3);
-
-% Use the same horizontal limits for all three plots.
-xLimits = [min(trajectoryPoint), max(trajectoryPoint)];
-
-if xLimits(1) == xLimits(2)
-    xLimits = xLimits + [-0.5 0.5];
-end
-
-xlim(ax1, xLimits);
-xlim(ax2, xLimits);
-xlim(ax3, xLimits);
-
-linkaxes([ax1 ax2 ax3], 'x');
-
-%% Figure 2: references spatially along the path
-
-pathFigure = figure( ...
-    'Name', 'Controller references along path', ...
-    'Color', figureBackground, ...
-    'Position', [150 60 1150 850]);
-
-tiledlayout(2, 2, ...
-    'TileSpacing', 'compact', ...
-    'Padding', 'compact');
-
-colormap(pathFigure, turbo(256));
-
-ax4 = nexttile;
-plotPathReference( ...
-    ax4, x, y, frontReference, ...
-    'Front steering reference', ...
-    'Front steering [rad]');
-
-ax5 = nexttile;
-plotPathReference( ...
-    ax5, x, y, rearReference, ...
-    'Rear steering reference', ...
-    'Rear steering [rad]');
-
-ax6 = nexttile;
-plotPathReference( ...
-    ax6, x, y, velocityReference, ...
-    'Velocity reference', ...
-    'Velocity [m/s]');
-
-ax7 = nexttile;
-plotPathReference( ...
-    ax7, x, y, accelerationReference, ...
-    'Acceleration reference', ...
-    'Acceleration [m/s^2]');
-
-%% Print reference ranges in the Command Window
-
-fprintf('\nController-reference snapshot %d\n', kIdx);
-fprintf('Number of trajectory points: %d\n', numel(trajectoryPoint));
-
-fprintf('Front steering: %+.4f to %+.4f rad\n', ...
-    min(frontReference), max(frontReference));
-
-fprintf('Rear steering : %+.4f to %+.4f rad\n', ...
-    min(rearReference), max(rearReference));
-
-fprintf('Velocity      : %+.4f to %+.4f m/s\n', ...
-    min(velocityReference), max(velocityReference));
-
-fprintf('Acceleration  : %+.4f to %+.4f m/s^2\n\n', ...
-    min(accelerationReference), max(accelerationReference));
-
+            data = data.Data;
+        end
+    end
 end
 
 
-function plotPathReference(ax, x, y, values, plotTitle, colorbarLabel)
-%PLOTPATHREFERENCE Draw one path-colored reference plot.
+function [selectedSnapshots, selectedDirections] = ...
+    findSegmentSnapshots(logData)
+% Detect trajectory segments using both path geometry and velocity sign.
+% The longest snapshot belonging to each detected segment is retained.
 
-hold(ax, 'on');
+    numberOfSnapshots = size(logData,3);
 
-% Draw a subtle path underneath the colored points.
-plot(ax, x, y, ...
-    '-', ...
-    'Color', [0.45 0.45 0.45], ...
-    'LineWidth', 1.0);
+    selectedSnapshots  = [];
+    selectedDirections = [];
+    bestSegmentLength  = [];
 
-scatter(ax, x, y, ...
-    34, values, ...
-    'filled');
+    representativeSnapshots = {};
 
-% Mark the first trajectory point.
-plot(ax, x(1), y(1), ...
-    'o', ...
-    'MarkerSize', 8, ...
-    'MarkerFaceColor', [1 1 1], ...
-    'MarkerEdgeColor', [0 0 0], ...
-    'LineWidth', 1.2);
+    currentSegment = 0;
 
-axis(ax, 'equal');
-grid(ax, 'on');
-box(ax, 'on');
+    for snapshotIndex = 1:numberOfSnapshots
 
-xlabel(ax, 'x [m]');
-ylabel(ax, 'y [m]');
-title(ax, plotTitle);
+        currentSnapshot = cleanSnapshot( ...
+            logData(:,:,snapshotIndex));
 
-applyDarkStyle(ax);
+        if size(currentSnapshot,1) < 2
+            continue;
+        end
 
-cb = colorbar(ax);
-cb.Label.String = colorbarLabel;
-cb.Color = [0.92 0.92 0.92];
-cb.Label.Color = [0.92 0.92 0.92];
-cb.FontSize = 10;
+        currentLength = sum(hypot( ...
+            diff(currentSnapshot(:,1)), ...
+            diff(currentSnapshot(:,2))));
 
+        finiteValues = currentSnapshot( ...
+            isfinite(currentSnapshot));
+
+        containsData = ...
+            ~isempty(finiteValues) && ...
+            any(abs(finiteValues) > 1e-12);
+
+        if ~containsData || ...
+                ~isfinite(currentLength) || ...
+                currentLength <= 1e-6
+
+            continue;
+        end
+
+        currentDirection = ...
+            findReferenceDirection(currentSnapshot);
+
+        if currentSegment == 0
+
+            startsNewSegment = true;
+
+        else
+
+            representativeSnapshot = ...
+                representativeSnapshots{currentSegment};
+
+            sameGeometry = pathsBelongToSameSegment( ...
+                representativeSnapshot, currentSnapshot);
+
+            storedDirection = ...
+                selectedDirections(currentSegment);
+
+            directionChanged = ...
+                currentDirection ~= 0 && ...
+                storedDirection ~= 0 && ...
+                currentDirection ~= storedDirection;
+
+            startsNewSegment = ...
+                directionChanged || ~sameGeometry;
+        end
+
+        if startsNewSegment
+
+            currentSegment = currentSegment + 1;
+
+            selectedSnapshots(currentSegment) = ...
+                snapshotIndex; %#ok<AGROW>
+
+            selectedDirections(currentSegment) = ...
+                currentDirection; %#ok<AGROW>
+
+            bestSegmentLength(currentSegment) = ...
+                currentLength; %#ok<AGROW>
+
+            representativeSnapshots{currentSegment} = ...
+                currentSnapshot; %#ok<AGROW>
+
+        else
+
+            % Recover the segment direction if its first snapshot was
+            % stationary.
+            if selectedDirections(currentSegment) == 0 && ...
+                    currentDirection ~= 0
+
+                selectedDirections(currentSegment) = ...
+                    currentDirection;
+            end
+
+            % Retain the longest available version of this segment.
+            if currentLength > bestSegmentLength(currentSegment)
+
+                selectedSnapshots(currentSegment) = ...
+                    snapshotIndex;
+
+                bestSegmentLength(currentSegment) = ...
+                    currentLength;
+
+                representativeSnapshots{currentSegment} = ...
+                    currentSnapshot;
+
+                if currentDirection ~= 0
+                    selectedDirections(currentSegment) = ...
+                        currentDirection;
+                end
+            end
+        end
+    end
 end
 
 
-function applyDarkStyle(ax)
-%APPLYDARKSTYLE Apply a uniform dark theme to one axes.
+function sameSegment = pathsBelongToSameSegment(pathA, pathB)
+% Determine whether two snapshots describe the same spatial segment.
+%
+% A shorter receding reference is considered part of the same segment
+% when it is mostly contained in the longer reference.
 
-backgroundColor = [0.055 0.055 0.055];
-foregroundColor = [0.92 0.92 0.92];
-gridColor       = [0.65 0.65 0.65];
+    pointsA = unique(pathA(:,1:2), ...
+        'rows', 'stable');
 
-ax.Color = backgroundColor;
+    pointsB = unique(pathB(:,1:2), ...
+        'rows', 'stable');
 
-ax.XColor = foregroundColor;
-ax.YColor = foregroundColor;
+    if size(pointsA,1) < 2 || size(pointsB,1) < 2
+        sameSegment = false;
+        return;
+    end
 
-ax.GridColor = gridColor;
-ax.GridAlpha = 0.28;
+    spacingA = hypot( ...
+        diff(pointsA(:,1)), diff(pointsA(:,2)));
 
-ax.MinorGridColor = gridColor;
-ax.MinorGridAlpha = 0.12;
+    spacingB = hypot( ...
+        diff(pointsB(:,1)), diff(pointsB(:,2)));
 
-ax.Title.Color = foregroundColor;
-ax.XLabel.Color = foregroundColor;
-ax.YLabel.Color = foregroundColor;
+    spacing = [spacingA; spacingB];
 
-ax.Box = 'on';
-ax.LineWidth = 0.8;
-ax.FontSize = 10;
+    spacing = spacing( ...
+        isfinite(spacing) & spacing > 1e-9);
 
+    if isempty(spacing)
+        distanceTolerance = 0.05;
+    else
+        distanceTolerance = max( ...
+            0.05, 2.5 * median(spacing));
+    end
+
+    % Pairwise squared distances. This does not require an additional
+    % MATLAB toolbox.
+    deltaX = pointsA(:,1) - pointsB(:,1).';
+    deltaY = pointsA(:,2) - pointsB(:,2).';
+
+    distanceSquared = deltaX.^2 + deltaY.^2;
+    toleranceSquared = distanceTolerance^2;
+
+    fractionAInsideB = mean( ...
+        min(distanceSquared, [], 2) <= toleranceSquared);
+
+    fractionBInsideA = mean( ...
+        min(distanceSquared, [], 1) <= toleranceSquared);
+
+    % Using the maximum allows a shortened path to be treated as a
+    % subset of the complete path.
+    overlapFraction = max( ...
+        fractionAInsideB, fractionBInsideA);
+
+    sameSegment = overlapFraction >= 0.60;
 end
 
 
-function applyDarkLegendStyle(lgd)
-%APPLYDARKLEGENDSTYLE Apply the dark theme to a legend.
+function snapshot = cleanSnapshot(snapshot)
+% Remove rows containing NaN or Inf values.
 
-lgd.Color = [0.055 0.055 0.055];
-lgd.TextColor = [0.92 0.92 0.92];
-lgd.EdgeColor = [0.55 0.55 0.55];
-lgd.FontSize = 9;
+    validRows = all(isfinite(snapshot), 2);
+    snapshot = snapshot(validRows,:);
+end
 
+
+function direction = findReferenceDirection(snapshot)
+% Determine trajectory direction from nonzero velocity references.
+
+    velocityTolerance = 1e-5;
+
+    velocity = snapshot(:,5);
+
+    movingVelocity = velocity( ...
+        isfinite(velocity) & ...
+        abs(velocity) > velocityTolerance);
+
+    if isempty(movingVelocity)
+        direction = 0;
+        return;
+    end
+
+    representativeVelocity = median(movingVelocity);
+
+    if abs(representativeVelocity) <= velocityTolerance
+        representativeVelocity = sum(sign(movingVelocity));
+    end
+
+    direction = sign(representativeVelocity);
+end
+
+
+function tolerance = calculateJoiningTolerance( ...
+    previousReference, currentReference)
+% Calculate the tolerance for removing duplicated junction points.
+
+    previousSpacing = hypot( ...
+        diff(previousReference(:,1)), ...
+        diff(previousReference(:,2)));
+
+    currentSpacing = hypot( ...
+        diff(currentReference(:,1)), ...
+        diff(currentReference(:,2)));
+
+    spacing = [previousSpacing; currentSpacing];
+
+    spacing = spacing( ...
+        isfinite(spacing) & spacing > 1e-9);
+
+    if isempty(spacing)
+        tolerance = 1e-6;
+    else
+        tolerance = max( ...
+            1e-6, 0.35 * median(spacing));
+    end
+end
+
+
+function figureHandle = getDockedFigure(tag, name, background)
+% Create or reuse a separate docked figure tab.
+
+    figureHandle = findall(groot, ...
+        'Type', 'figure', ...
+        'Tag', tag);
+
+    if isempty(figureHandle)
+
+        figureHandle = figure( ...
+            'Name', name, ...
+            'NumberTitle', 'off', ...
+            'Tag', tag, ...
+            'Color', background, ...
+            'WindowStyle', 'docked');
+
+    else
+
+        figureHandle = figureHandle(1);
+
+        set(figureHandle, ...
+            'Name', name, ...
+            'NumberTitle', 'off', ...
+            'Color', background, ...
+            'WindowStyle', 'docked');
+
+        clf(figureHandle);
+        figure(figureHandle);
+    end
+end
+
+
+function plotPathReference(ax, x, y, values, ...
+    segmentStart, segmentEnd, plotTitle, colorbarLabel, ...
+    axesBackground, foreground, gridColour)
+% Plot one reference signal along the complete spatial trajectory.
+
+    hold(ax, 'on');
+
+    plot(ax, x, y, ...
+        'Color', [0.32 0.32 0.32], ...
+        'LineWidth', 0.9, ...
+        'HandleVisibility', 'off');
+
+    scatter(ax, x, y, 24, values, ...
+        'filled', ...
+        'HandleVisibility', 'off');
+
+    % Circle: beginning of every segment
+    scatter(ax, ...
+        x(segmentStart), ...
+        y(segmentStart), ...
+        55, 'o', ...
+        'MarkerEdgeColor', foreground, ...
+        'MarkerFaceColor', 'none', ...
+        'LineWidth', 1.2, ...
+        'HandleVisibility', 'off');
+
+    % Square: end of every segment
+    scatter(ax, ...
+        x(segmentEnd), ...
+        y(segmentEnd), ...
+        55, 's', ...
+        'MarkerEdgeColor', foreground, ...
+        'MarkerFaceColor', 'none', ...
+        'LineWidth', 1.2, ...
+        'HandleVisibility', 'off');
+
+    title(ax, plotTitle);
+    xlabel(ax, 'x [m]');
+    ylabel(ax, 'y [m]');
+
+    axis(ax, 'equal');
+    axis(ax, 'tight');
+
+    colormap(ax, turbo(256));
+    setColourLimits(ax, values);
+
+    colourBar = colorbar(ax);
+    colourBar.Color = foreground;
+    colourBar.Label.String = colorbarLabel;
+    colourBar.Label.Color = foreground;
+
+    applyDarkAxesStyle(ax, ...
+        axesBackground, foreground, gridColour);
+end
+
+
+function setColourLimits(ax, values)
+% Prevent invalid colour limits when a reference signal is constant.
+
+    values = values(isfinite(values));
+
+    if isempty(values)
+        return;
+    end
+
+    minimumValue = min(values);
+    maximumValue = max(values);
+
+    if maximumValue > minimumValue
+
+        clim(ax, [minimumValue, maximumValue]);
+
+    else
+
+        padding = max( ...
+            1e-6, 0.05 * max(1, abs(minimumValue)));
+
+        clim(ax, [
+            minimumValue - padding
+            maximumValue + padding
+        ]);
+    end
+end
+
+
+function addSegmentBoundaries(ax, segmentStart)
+% Mark the beginning of every segment after the first.
+
+    validStart = segmentStart(segmentStart > 0);
+
+    for segmentIndex = 2:numel(validStart)
+
+        xline(ax, validStart(segmentIndex) - 0.5, ':', ...
+            'Color', [0.55 0.55 0.55], ...
+            'LineWidth', 1.0, ...
+            'HandleVisibility', 'off');
+    end
+end
+
+
+function applyDarkAxesStyle( ...
+    ax, background, foreground, gridColour)
+
+    ax.Color = background;
+    ax.XColor = foreground;
+    ax.YColor = foreground;
+    ax.GridColor = gridColour;
+    ax.MinorGridColor = gridColour;
+    ax.GridAlpha = 0.55;
+    ax.MinorGridAlpha = 0.25;
+    ax.Box = 'on';
+
+    grid(ax, 'on');
+
+    ax.Title.Color = foreground;
+    ax.XLabel.Color = foreground;
+    ax.YLabel.Color = foreground;
+end
+
+
+function applyDarkLegendStyle( ...
+    legendHandle, background, foreground)
+
+    legendHandle.Color = background;
+    legendHandle.TextColor = foreground;
+    legendHandle.EdgeColor = [0.55 0.55 0.55];
+end
+
+
+function text = directionName(direction)
+
+    if direction > 0
+        text = 'forward';
+
+    elseif direction < 0
+        text = 'reverse';
+
+    else
+        text = 'stationary/unknown direction';
+    end
 end
