@@ -53,9 +53,9 @@ createBuses;
 
 %open_system("ATOM_pred_sim_variable_rear_ratio_lateral.slx");
 
-open_system("ATOM_simple_planning_simulator.slx");
+%open_system("ATOM_simple_planning_simulator.slx");
 
-%open_system("ATOM_parking_chain");
+open_system("ATOM_parking_chain");
 
 
 %% To plot the actual velocity and acceleration along the path, at the end of the simulation run:
@@ -71,3 +71,10 @@ shape.back  = -(p.rear_overhang + margin/2);                        % -0.710
 shape.front = Lv + shape.back;                                      % +2.710
 shape.left  =  Wv/2;                                                % +1.328
 shape.right = -Wv/2;                                                % -1.328
+
+%% acados NMPC solver (row-3 test, Subsystem2)
+addpath("/home/husain5/MATLAB-Autoware/Acados");
+clear mex                                            % unload an old solver MEX before rebuilding
+oldFolder = cd("/home/husain5/MATLAB-Autoware/Acados");   % generated code -> Acados/c_generated_atom, Acados/build
+[atomSolver, atomCfg] = generate_atom_solver(vehicle);
+cd(oldFolder);
