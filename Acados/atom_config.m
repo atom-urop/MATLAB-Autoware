@@ -54,7 +54,7 @@ cfg.vxBounds = [];
 %% Collision clearance: controller setting
 % Same convention as the existing parking controller:
 % 0.5 m total expansion means 0.25 m on each face.
-cfg.collisionMargin = 0.5;
+cfg.collisionMargin = 0.4;%0.5;
 
 %% Soft collision constraints
 % Quadratic penalty on how far a car corner is outside its corridor.

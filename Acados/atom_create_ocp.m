@@ -204,7 +204,9 @@ ocp.solver_options.sim_method_num_steps  = ...
 ocp.solver_options.nlp_solver_type = cfg.nlpSolver;
 
 ocp.solver_options.hessian_approx = 'GAUSS_NEWTON';
-ocp.solver_options.globalization  = 'FIXED_STEP';   % full SQP steps: the merit line search rejected good Newton steps
+ocp.solver_options.globalization =  'FIXED_STEP';
+% ocp.solver_options.globalization_fixed_step_length = 0.7;   % T1 test: rejected (no fix, slower)
+% ocp.solver_options.globalization_use_SOC = 1;               % T2 test: second-order correction
 
 ocp.solver_options.qp_solver = ...
     'PARTIAL_CONDENSING_HPIPM';
@@ -219,7 +221,7 @@ ocp.solver_options.qp_solver_cond_ric_alg = 0;
 ocp.solver_options.levenberg_marquardt = 1e-6;
 
 ocp.solver_options.nlp_solver_max_iter = cfg.maxIter;
-
+    
 ocp.solver_options.nlp_solver_tol_stat = cfg.nlpTolStat;
 ocp.solver_options.nlp_solver_tol_eq   = cfg.nlpTol;
 ocp.solver_options.nlp_solver_tol_ineq = cfg.nlpTol;

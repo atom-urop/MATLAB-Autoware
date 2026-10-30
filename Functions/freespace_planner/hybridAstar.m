@@ -39,7 +39,7 @@ heuristic_type = 1;
 % 2 = position + orientation lower bound
 
 %% Parameters to tune!!
-max_turning_ratio = 0.8;
+max_turning_ratio = 0.7;%0.8
 
 delta_max = vehicle.param.max_steer_angle * max_turning_ratio;
 % Maximum curvature for symmetric 4WS counter-phase:
@@ -108,11 +108,22 @@ for iter = 1:max_iter
     closed(cur) = true;
     if atGoal(cur), found = cur; break; end
 
+    % Candidate moves WITHOUT the swept collision check (false): the
+    % check is done below, only for moves that can still be used.
     nxt = nextStates( ...
         costmap, vehicle, ...
         nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
         max_turning_ratio, turning_steps, step, ...
-        steering_configuration);
+        steering_configuration, false);
+
+    % Clearance of the parent pose (sample s = 0 of every move): the same
+    % for all moves of this expansion, so it is computed once here.
+    d_parent = clearance_preferred;
+    if clearance_w > 0
+        d_parent = vehicleClearance( ...
+            costmap, vehicle, nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
+            clearance_preferred);
+    end
 
     for j = 1:size(nxt,1)
         nx = nxt(j,1);  
@@ -170,26 +181,66 @@ for iter = 1:max_iter
         steering_change_cost = steer_change_w * ...
             (front_change^2 + rear_change^2);
 
-        %% Obstacle-clearance cost
+        %% (A) Cheap test first: can this move still improve the node?
+        % Cost WITHOUT the clearance term. The clearance term is >= 0, so if
+        % this lower bound already fails the comparison "f < nodes(r,5)"
+        % below, the complete cost fails it too: the move is discarded
+        % exactly as before, but without collision and clearance work.
+        g_lower = nodes(cur,4) + w*step + steering_change_cost + 0;
+        if switched
+            g_lower = g_lower + dir_w*(1 + 1/(1 + nodes(cur,10)));
+        end
+        if r > 0 && g_lower + heur_w*heuristicCost(nx, ny, nth) >= nodes(r,5)
+            continue;
+        end
+
+        %% (B) Swept collision check (moved here from nextStates.m)
+        % Same samples as before: every res/2 along the 0.5 m arc.
+        steer_res = vehicle.param.max_steer_angle * ...
+            max_turning_ratio / turning_steps;
+
+        steer_f = front_index * steer_res;
+        steer_r = rear_index  * steer_res;
+
+        distance = step;
+        if is_back
+            distance = -distance;
+        end
+
+        number_of_collision_samples = max( ...
+            2, ...
+            ceil(abs(distance)/(costmap.res/2)));
+
+        edge_is_collision_free = true;
+        for collision_sample_index = 1:number_of_collision_samples
+            sample_distance = ...
+                distance * ...
+                collision_sample_index / ...
+                number_of_collision_samples;
+            [sample_x,sample_y,sample_theta] = bicycleGetPose( ...
+                nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
+                steer_f, steer_r, vehicle.param.wheel_base, ...
+                sample_distance);
+            if collisionCheck(costmap, vehicle, ...
+                    sample_x, sample_y, sample_theta)
+                edge_is_collision_free = false;
+                break;
+            end
+        end
+        if ~edge_is_collision_free
+            continue;
+        end
+
+        %% (C) Obstacle-clearance cost
         clearance_cost = 0;
 
         if clearance_w > 0
-            steer_res = vehicle.param.max_steer_angle * ...
-                max_turning_ratio / turning_steps;
-
-            steer_f = front_index * steer_res;
-            steer_r = rear_index  * steer_res;
-
-            distance = step;
-            if is_back
-                distance = -distance;
-            end
-
             % Sample the actual bicycle-model movement, not a straight chord
             n_samples = max(2, ceil(step / (costmap.res/2)));
             d_min = clearance_preferred;
+            d_min = min(d_min, d_parent);    % sample s = 0, computed once per expansion
 
-            for s = 0:n_samples
+            for s = 1:n_samples
                 [xs, ys, ths] = bicycleGetPose( ...
                     nodes(cur,1), nodes(cur,2), nodes(cur,3), ...
                     steer_f, steer_r, vehicle.param.wheel_base, ...

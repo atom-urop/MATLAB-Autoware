@@ -2,7 +2,7 @@
 function nxt = nextStates( ...
     costmap, vehicle, x, y, th, ...
     max_turning_ratio, turning_steps, expansion_distance, ...
-    steering_configuration)%unified 4WS 3 cases in one function
+        steering_configuration, check_collision)%unified 4WS 3 cases in one function
 %NEXTSTATES Generate collision-free Hybrid A* successor states.
 %
 % steering_configuration:
@@ -162,7 +162,13 @@ for is_back = [false true]
             2, ...
             ceil(abs(distance)/(costmap.res/2)));
 
-        edge_is_collision_free = true;
+               edge_is_collision_free = true;
+
+        % check_collision = false (passed by hybridAstar): skip the sweep
+        % here; hybridAstar checks only the moves that can still be used.
+        if nargin >= 10 && ~check_collision
+            number_of_collision_samples = 0;
+        end
 
         for collision_sample_index = ...
                 1:number_of_collision_samples

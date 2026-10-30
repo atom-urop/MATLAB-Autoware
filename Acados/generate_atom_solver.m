@@ -63,7 +63,7 @@ data.epsilon = zeros(4, cfg.N);
 
 data.x_guess = zeros(cfg.nx, cfg.N+1);
 data.u_guess = zeros(cfg.nu, cfg.N);
-So from the current implementation, what do you think should be done before going into Autoware ros2 humble? do you think we are ready now to implement everything inside Autoware?
+%So from the current implementation, what do you think should be done before going into Autoware ros2 humble? do you think we are ready now to implement everything inside Autoware?
 %% Solve and inspect
 out = atom_solve_once(solver, cfg, data);
 
