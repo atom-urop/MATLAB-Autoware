@@ -1,9 +1,10 @@
 function PlotProofOfLiveTopicFromPlanningSimulator()
+here     = fileparts(mfilename('fullpath'));   % folder of this file
 % One captured message from
 % /planning/scenario_planning/velocity_smoother/trajectory
 % on the running Autoware stack.
 
-T = readtable('/home/husain5/MATLAB-Autoware/proof.csv');
+T = readtable(fullfile(here, 'proof.csv'));
 
 C_F = [0.11 0.42 0.76];   % front
 C_R = [0.13 0.60 0.35];   % rear

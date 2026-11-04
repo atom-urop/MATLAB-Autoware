@@ -1,5 +1,7 @@
 function PrintLutYaml()
-S = load('/home/husain5/MATLAB-Autoware/LUT/LUT_rr_computation.mat');
+here     = fileparts(mfilename('fullpath'));   % folder of this file
+repoRoot = fileparts(fileparts(here));          % repository root (two levels up)
+S = load(fullfile(repoRoot, 'LUT', 'LUT_rr_computation.mat'));
 emitRow('k_ref_lut',   S.k_ref_LUT);
 emitRow('rr_lut',      S.rr_LUT);
 emitRow('delta_f_lut', S.delta_f_LUT);

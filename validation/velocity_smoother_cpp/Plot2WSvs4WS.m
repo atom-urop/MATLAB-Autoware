@@ -1,5 +1,7 @@
 function Plot2WSvs4WS()
-T = readtable('/home/husain5/MATLAB-Autoware/TestDataFromAutoware_front_rear_velocity.csv');
+here     = fileparts(mfilename('fullpath'));   % folder of this file
+repoRoot = fileparts(fileparts(here));          % repository root (two levels up)
+T = readtable(fullfile(here, 'TestDataFromAutoware_front_rear_velocity.csv'));
 
 % --- 1. Trajectory, coloured by curvature ---
 figure;
@@ -10,7 +12,7 @@ title('90 deg left turn (R = 1 m)');
 
 
 % --- 2. Front steering: the core claim ---
-S = load('/home/husain5/MATLAB-Autoware/LUT/LUT_rr_computation.mat');
+S = load(fullfile(repoRoot, 'LUT', 'LUT_rr_computation.mat'));
 L = 2.0;
 
 front_2ws_m = atan(L * T.kappa);

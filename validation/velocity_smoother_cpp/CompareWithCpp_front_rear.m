@@ -1,10 +1,12 @@
 function CompareWithCpp_front_rear()
+here     = fileparts(mfilename('fullpath'));   % folder of this file
+repoRoot = fileparts(fileparts(here));          % repository root (two levels up)
 % Compares the C++ velocity smoother output against ComputeSteeringRateAngle4WS.
 % Both sides use the SAME curvature (taken from the C++ CSV), so any
 % difference is attributable to the lookup, not to curvature calculation.
 
-T = readtable('~/MATLAB-Autoware/Velocity_Smoother_Autoware/TestDataFromAutoware_front_rear.csv');
-S = load('~/MATLAB-Autoware/LUT/LUT_rr_computation.mat');
+T = readtable(fullfile(here, 'TestDataFromAutoware_front_rear.csv'));
+S = load(fullfile(repoRoot, 'LUT', 'LUT_rr_computation.mat'));
 
 % --- Run the MATLAB reference on the C++ curvature ---
 traj = struct();
