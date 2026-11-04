@@ -13,15 +13,16 @@
 % react
 
 clear; close all; clc;
+here = fileparts(mfilename('fullpath'));   % folder of this script (the CSV files live here)
 
 %% Load
-o2 = readtable('~/MATLAB-Autoware/Vehicle_Model_Autoware/2ws_odom.csv');
-r2 = readtable('~/MATLAB-Autoware/Vehicle_Model_Autoware/2ws_rear_steer.csv');
-f2 = readtable('~/MATLAB-Autoware/Vehicle_Model_Autoware/2ws_front_steer.csv');
+o2 = readtable(fullfile(here, '2ws_odom.csv'));
+r2 = readtable(fullfile(here, '2ws_rear_steer.csv'));
+f2 = readtable(fullfile(here, '2ws_front_steer.csv'));
 
-o4 = readtable('~/MATLAB-Autoware/Vehicle_Model_Autoware/4ws_odom.csv');
-r4 = readtable('~/MATLAB-Autoware/Vehicle_Model_Autoware/4ws_rear_steer.csv');
-f4 = readtable('~/MATLAB-Autoware/Vehicle_Model_Autoware/4ws_front_steer.csv');
+o4 = readtable(fullfile(here, '4ws_odom.csv'));
+r4 = readtable(fullfile(here, '4ws_rear_steer.csv'));
+f4 = readtable(fullfile(here, '4ws_front_steer.csv'));
 
 %% Figure 1 - Trajectory overlay
 figure('Name','Trajectory','Position',[100 100 700 600]);

@@ -10,6 +10,7 @@
 % ATOM UROP - 4WS vehicle model
 
 clear; close all; clc;
+here = fileparts(mfilename('fullpath'));   % folder of this script (the CSV files live here)
 
 %% ATOM vehicle geometry (from the vehicle description package)
 L      = 2.000;   % wheel_base [m]
@@ -33,9 +34,9 @@ tl = tiledlayout(2, numel(TIMES), 'TileSpacing','compact', 'Padding','compact');
 
 for k = 1:2
     tag = runs{k,1};
-    o = readtable([tag '_odom.csv']);
-    f = readtable([tag '_front_steer.csv']);
-    r = readtable([tag '_rear_steer.csv']);
+    o = readtable(fullfile(here, [tag '_odom.csv']));
+    f = readtable(fullfile(here, [tag '_front_steer.csv']));
+    r = readtable(fullfile(here, [tag '_rear_steer.csv']));
 
     for j = 1:numel(TIMES)
         t = TIMES(j);
@@ -64,9 +65,9 @@ T_CS = 53;
 figure('Name','Counter-steering','Position',[60 60 1100 550],'Color','w');
 for k = 1:2
     tag = runs{k,1};
-    o = readtable([tag '_odom.csv']);
-    f = readtable([tag '_front_steer.csv']);
-    r = readtable([tag '_rear_steer.csv']);
+    o = readtable(fullfile(here, [tag '_odom.csv']));
+    f = readtable(fullfile(here, [tag '_front_steer.csv']));
+    r = readtable(fullfile(here, [tag '_rear_steer.csv']));
     [~, i] = min(abs(o.t - T_CS));
     df = interp1(f.t, f.angle, T_CS, 'linear', 0);
     dr = interp1(r.t, r.angle, T_CS, 'linear', 0);
@@ -82,8 +83,8 @@ end
 %% Figure 3 - crab angle
 % beta = atan2(vy, vx): the angle between where the vehicle points and
 % where it actually moves. Identically zero for a 2WS vehicle.
-o2 = readtable('2ws_odom.csv');
-o4 = readtable('4ws_odom.csv');
+o2 = readtable(fullfile(here, '2ws_odom.csv'));
+o4 = readtable(fullfile(here, '4ws_odom.csv'));
 b2 = atan2(o2.vy, max(o2.vx, 1e-6));
 b4 = atan2(o4.vy, max(o4.vx, 1e-6));
 
@@ -101,9 +102,9 @@ fprintf('Crab angle  4WS: %.4f .. %.4f deg\n', min(rad2deg(b4)), max(rad2deg(b4)
 % Set to true to sweep through the 4WS run.
 ANIMATE = false;
 if ANIMATE
-    o = readtable('4ws_odom.csv');
-    f = readtable('4ws_front_steer.csv');
-    r = readtable('4ws_rear_steer.csv');
+    o = readtable(fullfile(here, '4ws_odom.csv'));
+    f = readtable(fullfile(here, '4ws_front_steer.csv'));
+    r = readtable(fullfile(here, '4ws_rear_steer.csv'));
     figure('Name','4WS animation','Position',[60 60 800 800],'Color','w');
     for t = 0:0.25:max(o.t)
         [~, i] = min(abs(o.t - t));
