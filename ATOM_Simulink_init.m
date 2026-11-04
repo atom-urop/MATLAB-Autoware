@@ -6,20 +6,18 @@ close all;
 %% 
 
 
-% % Add folders to MATLAB path - Andrea
-% -
-% addpath("/home/andrea-ricetti/Documenti/MATLAB/Parameters");
-% addpath("/home/andrea-ricetti/Documenti/MATLAB/Buses");
-% addpath(genpath("/home/andrea-ricetti/Documenti/MATLAB/Functions"));
-% addpath("/home/andrea-ricetti/Documenti/MATLAB/LUT");
+%% Repository root (folder that contains this file)
+repoRoot = fileparts(mfilename('fullpath'));
+if isempty(repoRoot)
+    error('Run ATOM_Simulink_init as a whole script (Run button or by name), not by section.');
+end
 
-
-%% Add folders to MATLAB path - Hussein
-
-addpath("/home/husain5/MATLAB-Autoware/Parameters");
-addpath("/home/husain5/MATLAB-Autoware/Buses");
-addpath(genpath("/home/husain5/MATLAB-Autoware/Functions"));
-addpath("/home/husain5/MATLAB-Autoware/LUT");
+%% Add folders to the MATLAB path
+addpath(fullfile(repoRoot, "Parameters"));
+addpath(fullfile(repoRoot, "Buses"));
+addpath(genpath(fullfile(repoRoot, "Functions")));
+addpath(fullfile(repoRoot, "LUT"));
+addpath(fullfile(repoRoot, "Acados"));
 
 
 %% Load vehicle parameters
@@ -55,7 +53,7 @@ createBuses;
 
 open_system("ATOM_simple_planning_simulator.slx");
 
-open_system("ATOM_parking_chain");
+%open_system("ATOM_parking_chain");
 
 
 %% To plot the actual velocity and acceleration along the path, at the end of the simulation run:
@@ -72,9 +70,8 @@ shape.front = Lv + shape.back;                                      % +2.710
 shape.left  =  Wv/2;                                                % +1.328
 shape.right = -Wv/2;                                                % -1.328
 
-%% acados NMPC solver (row-3 test, Subsystem2)
-addpath("/home/husain5/MATLAB-Autoware/Acados");
-clear mex                                            % unload an old solver MEX before rebuilding
-oldFolder = cd("/home/husain5/MATLAB-Autoware/Acados");   % generated code -> Acados/c_generated_atom, Acados/build
+%% acados NMPC solver (parking controller)
+clear mex                                                % unload an old solver MEX before rebuilding
+oldFolder = cd(fullfile(repoRoot, "Acados"));            % generated code -> Acados/c_generated_atom, Acados/build
 [atomSolver, atomCfg] = generate_atom_solver(vehicle);
 cd(oldFolder);
