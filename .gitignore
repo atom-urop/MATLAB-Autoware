@@ -1,4 +1,19 @@
+# Simulink / MATLAB derived files
 slprj/
-*.asv
-*.autosave
 *.slxc
+*.autosave
+*.asv
+*.original
+
+# Compiled binaries (rebuilt locally)
+*.mex*
+*.o
+*.so
+
+# acados generated code (rebuilt by generate_atom_solver)
+Acados/c_generated_atom/
+Acados/build/
+c_generated_code/
+
+# Simulation outputs
+Acados/Analysis/*.mat
