@@ -1,10 +1,14 @@
 %% ATOM_Simulink_init.m
+% Entry point of the repository: sets the MATLAB path, loads parameters and
+% look-up tables, creates the Simulink buses, opens the main model and
+% builds the acados NMPC solver.
+%
+% Run it with the Run button or by typing ATOM_Simulink_init
+% (not with "Run Section": the repository root is then unknown).
 
 clc;
 clear;
 close all;
-%% 
-
 
 %% Repository root (folder that contains this file)
 repoRoot = fileparts(mfilename('fullpath'));
@@ -13,52 +17,31 @@ if isempty(repoRoot)
 end
 
 %% Add folders to the MATLAB path
+addpath(fullfile(repoRoot, "models"));
 addpath(fullfile(repoRoot, "Parameters"));
 addpath(fullfile(repoRoot, "Buses"));
 addpath(genpath(fullfile(repoRoot, "Functions")));
 addpath(fullfile(repoRoot, "LUT"));
 addpath(fullfile(repoRoot, "Acados"));
 
-
-%% Load vehicle parameters
-
+%% Load vehicle and module parameters
 vehicleParameters;
 velocity_smoother_params;
 planning_validator_params;
 stanley_params;
 PID_Longitudinal_Velocity_Controller_Parameters;
 
-
-
-% %% Load LUTs-Andrea
-% 
-% load('LUT_gain4WS_computation.mat');
-% load('LUT_rr_computation.mat');
-
-%% Load LUTs
-
+%% Load look-up tables (4WS gain and rear-steer ratio)
 load(fullfile(repoRoot, "LUT", "LUT_gain4WS_computation.mat"));
 load(fullfile(repoRoot, "LUT", "LUT_rr_computation.mat"));
 
 %% Create Simulink buses
-
 createBuses;
 
-
 %% Open Simulink model
-
-%open_system("ATOM_simple_planning_2WS.slx");
-
-%open_system("ATOM_pred_sim_variable_rear_ratio_lateral.slx");
-
-open_system("ATOM_simple_planning_simulator.slx");
-
-%open_system("ATOM_parking_chain");
-
-
-%% To plot the actual velocity and acceleration along the path, at the end of the simulation run:
-%plotVehicleRun(out.veh_log)
-
+open_system(fullfile(repoRoot, "models", "ATOM_simple_planning_simulator.slx"));
+% open_system(fullfile(repoRoot, "models", "ATOM_parking_chain.slx"));   % parking test bench (fmincon vs acados rows)
+% Legacy models (2WS, lateral-only) are in models/legacy/
 
 %% Vehicle shape margin for parking scenario
 margin = 0.5; %from the yaml file vehicle_shape_margin_m: 0.5    % vehicle_shape_margin_m
@@ -75,3 +58,6 @@ clear mex                                                % unload an old solver 
 oldFolder = cd(fullfile(repoRoot, "Acados"));            % generated code -> Acados/c_generated_atom, Acados/build
 [atomSolver, atomCfg] = generate_atom_solver(vehicle);
 cd(oldFolder);
+
+%% Post-processing (after a simulation run)
+% plotVehicleRun(out.veh_log)     % actual velocity and acceleration along the path

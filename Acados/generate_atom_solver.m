@@ -46,7 +46,7 @@ cd(ocp.code_gen_options.code_export_directory);
 make_sfun;                  % -> acados_solver_sfunction_atom_4ws_nmpc.mexa64
 cd(here);
 
-addpath(ocp.code_gen_options.code_export_directory);   % S-function location (Acados/c_generated_atom)   % S-function location
+addpath(ocp.code_gen_options.code_export_directory);   % S-function location (Acados/c_generated_atom)
 
 %% Prepare one stationary OCP
 data.x_init = xStationary;
