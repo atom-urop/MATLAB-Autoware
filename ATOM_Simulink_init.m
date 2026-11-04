@@ -35,10 +35,10 @@ PID_Longitudinal_Velocity_Controller_Parameters;
 % load('LUT_gain4WS_computation.mat');
 % load('LUT_rr_computation.mat');
 
-%% Load LUTs-Andrea
+%% Load LUTs
 
-load("/home/husain5/MATLAB-Autoware/LUT/LUT_gain4WS_computation.mat")
-load("/home/husain5/MATLAB-Autoware/LUT/LUT_rr_computation.mat")
+load(fullfile(repoRoot, "LUT", "LUT_gain4WS_computation.mat"));
+load(fullfile(repoRoot, "LUT", "LUT_rr_computation.mat"));
 
 %% Create Simulink buses
 
