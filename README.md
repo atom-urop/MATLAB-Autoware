@@ -1,6 +1,6 @@
 # MATLAB-Autoware
 
-MATLAB/Simulink reimplementation of the Autoware planning and control chain for the **ATOM** four-wheel-steering (4WS) vehicle. It reproduces Autoware's lane-driving pipeline (velocity smoother, planning validator, lateral and longitudinal control) and adds a **parking module**: a Hybrid A\* planner followed by a nonlinear MPC solved with **acados**.
+MATLAB/Simulink reimplementation of the Autoware planning and control chain for the **ATOM** four-wheel-steering (4WS) vehicle. It reproduces Autoware's lane-driving pipeline (velocity smoother, planning validator, lateral and longitudinal control) and the parking module, but changes the controller in the lane-drving to be 4WS oriented Stanley and updates the parking module to have a costumized Hybrid A\* planner followed by a nonlinear MPC solved with **acados**.
 
 - 2WS and 4WS vehicle models (counter-phase and in-phase rear steering)
 - Lane-following scenario: velocity smoother, planning validator, Stanley lateral control with 4WS, PID longitudinal control
