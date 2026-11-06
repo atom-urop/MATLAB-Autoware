@@ -58,15 +58,8 @@ In the MATLAB Command Window:
 ATOM_Simulink_init
 ```
 
-`ATOM_Simulink_init` sets the MATLAB path, loads the parameters and look-up tables, creates the Simulink buses, opens `models/ATOM_simple_planning_simulator.slx`, and generates and compiles the acados NMPC solver into `Acados/c_generated_atom/` and `Acados/build/` (these folders are not tracked by git). Then press **Run** in the model.
+When you run ATOM_Simulink_init.m, a Simulink model will open having two chains, one of them will be commented. For testing the lane-drving scenario you should commented the parking chain and vice versa in case you need to test the parking chain.
 
-### 5. Expected result
-
-The simulation runs to the end. The model's stop callback opens the result figures, docked in one Figures window:
-
-- the parking plan on the occupancy grid (`plotPlan`)
-- the controller references (`PlotControllerReferences`)
-- the controller tracking (`PlotControllerTracking`)
 
 ## Repository structure
 
@@ -102,53 +95,9 @@ MATLAB-Autoware/
 | `models/legacy/ATOM_simple_planning_2WS.slx` | Lateral pipeline with the 2WS vehicle on six test trajectories |
 | `models/legacy/ATOM_pred_sim_variable_rear_ratio_lateral.slx` | Lateral-only pipeline with predictive Stanley control and variable rear-steering ratio |
 
-## Analysis and validation
+## Lane Driving 
 
-Run `ATOM_Simulink_init` first, so that `Functions/` is on the path.
-
-**NMPC predictions vs. actual states** (after a simulation of `ATOM_parking_chain`):
-
-```matlab
-run(fullfile('Acados', 'Analysis', 'atom_nmpc_analysis.m'))
-```
-
-**2WS vs. 4WS vehicle model** (data recorded from the Autoware planning simulator):
-
-```matlab
-addpath(fullfile('validation', 'vehicle_model_2ws_vs_4ws'))
-PlotComparisonBetween4WSand2WSVehicleModel
-PlotVehicle
-```
-
-**MATLAB vs. Autoware C++ velocity smoother:**
-
-```matlab
-addpath(fullfile('validation', 'velocity_smoother_cpp'))
-CompareWithCpp_front_rear
-Plot2WSvs4WS
-PlotProofOfLiveTopicFromPlanningSimulator
-PrintLutYaml          % prints the LUT in YAML format for the Autoware parameter file
-```
-
-The validation scripts clear the workspace; run `ATOM_Simulink_init` again before the next simulation.
-
-## Regenerating the look-up tables
-
-`LUT/Curvature_computation_4WS.m` recomputes `LUT_gain4WS_computation.mat` and `LUT_rr_computation.mat` and saves them into `LUT/`. It takes a long time, overwrites the committed tables and requires the Optimization Toolbox.
-
-## Troubleshooting
-
-| Symptom | Cause | Fix |
-|---|---|---|
-| `Undefined function 'AcadosOcp'` | acados MATLAB interface not on the path | start MATLAB from the shell of step 3 |
-| `libacados.so: cannot open shared object file` | `LD_LIBRARY_PATH` not set | start MATLAB from the shell of step 3 |
-| `No supported compiler was found` | MEX compiler not configured | `mex -setup C` |
-| `Run ATOM_Simulink_init as a whole script ...` | the script was started with *Run Section* | press **Run** or type `ATOM_Simulink_init` |
-| `Undefined function 'vehicleParameters'` | `ATOM_Simulink_init` was not run | run it before opening a model |
-
-## Versions
-
-The state of the repository before the cleanup is kept as tag [`v0.1-pre-cleanup`](https://github.com/atom-urop/MATLAB-Autoware/tree/v0.1-pre-cleanup).
+## Parking 
 
 ## Authors
 
